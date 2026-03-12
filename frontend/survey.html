@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SFAO – Submit Feedback</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen font-sans flex flex-col">
+
+  <!-- Nav -->
+  <nav class="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">S</div>
+      <span class="text-lg font-semibold">SFAO</span>
+    </div>
+    <div class="flex gap-4 text-sm">
+      <a href="index.html" class="text-gray-400 hover:text-white">Dashboard</a>
+      <a href="survey.html" class="text-blue-400 font-medium">Survey</a>
+      <a href="portal.html" class="text-gray-400 hover:text-white">Portal</a>
+    </div>
+  </nav>
+
+  <main class="flex-1 flex items-center justify-center p-6">
+    <div class="w-full max-w-lg bg-gray-800 rounded-2xl p-8 shadow-xl">
+      <h1 class="text-2xl font-bold mb-1">Employee Feedback Survey</h1>
+      <p class="text-gray-400 text-sm mb-6">Your response is anonymous and helps improve our organization.</p>
+
+      <form id="survey-form" class="space-y-5">
+
+        <!-- Name -->
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Your Name (optional)</label>
+          <input id="name" type="text" placeholder="e.g. Jane Smith"
+            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
+        </div>
+
+        <!-- Department -->
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Department <span class="text-red-400">*</span></label>
+          <select id="department" required
+            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+            <option value="">Select department...</option>
+            <option>Engineering</option>
+            <option>Sales</option>
+            <option>Marketing</option>
+            <option>HR</option>
+            <option>Finance</option>
+            <option>Operations</option>
+            <option>Customer Support</option>
+          </select>
+        </div>
+
+        <!-- Star Rating -->
+        <div>
+          <label class="block text-sm text-gray-300 mb-2">Overall Rating <span class="text-red-400">*</span></label>
+          <div class="flex gap-2" id="stars">
+            <button type="button" data-val="1" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+            <button type="button" data-val="2" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+            <button type="button" data-val="3" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+            <button type="button" data-val="4" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+            <button type="button" data-val="5" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+          </div>
+          <input type="hidden" id="rating" value="0"/>
+        </div>
+
+        <!-- Feedback Text -->
+        <div>
+          <label class="block text-sm text-gray-300 mb-1">Your Feedback <span class="text-red-400">*</span></label>
+          <textarea id="feedback-text" rows="4" required placeholder="Share your thoughts, issues, or suggestions..."
+            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none"></textarea>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+          Submit Feedback
+        </button>
+
+        <!-- Result -->
+        <div id="result" class="hidden text-center text-sm py-2 rounded-lg"></div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const API = 'http://localhost:8000';
+    let selectedRating = 0;
+
+    // Star rating
+    document.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', () => {
+        selectedRating = parseInt(star.dataset.val);
+        document.getElementById('rating').value = selectedRating;
+        document.querySelectorAll('.star').forEach((s, i) => {
+          s.classList.toggle('text-yellow-400', i < selectedRating);
+          s.classList.toggle('text-gray-600', i >= selectedRating);
+        });
+      });
+    });
+
+    document.getElementById('survey-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const resultEl = document.getElementById('result');
+
+      const department = document.getElementById('department').value;
+      const rating     = parseInt(document.getElementById('rating').value);
+      const text       = document.getElementById('feedback-text').value.trim();
+
+      if (!department) return showResult('Please select your department.', 'error');
+      if (rating < 1)  return showResult('Please select a star rating.', 'error');
+      if (!text)       return showResult('Please enter your feedback.', 'error');
+
+      try {
+        const res = await fetch(`${API}/survey`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: document.getElementById('name').value || 'Anonymous', department, rating, text })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showResult(`✓ Thank you! Your feedback was recorded as "${data.sentiment}" (${data.category}).`, 'success');
+          e.target.reset();
+          selectedRating = 0;
+          document.querySelectorAll('.star').forEach(s => s.classList.replace('text-yellow-400', 'text-gray-600'));
+        } else {
+          showResult(data.detail || 'Submission failed.', 'error');
+        }
+      } catch {
+        showResult('Cannot reach server. Please ensure the backend is running.', 'error');
+      }
+    });
+
+    function showResult(msg, type) {
+      const el = document.getElementById('result');
+      el.textContent = msg;
+      el.className = `text-center text-sm py-2 rounded-lg ${type === 'success' ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'}`;
+      el.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

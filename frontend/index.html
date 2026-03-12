@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SFAO – Executive Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen font-sans">
+
+  <!-- Nav -->
+  <nav class="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">S</div>
+      <span class="text-lg font-semibold tracking-wide">SFAO</span>
+      <span class="text-gray-400 text-sm">Smart Feedback Analyzer for Organization</span>
+    </div>
+    <div class="flex gap-4 text-sm">
+      <a href="index.html" class="text-blue-400 font-medium">Dashboard</a>
+      <a href="survey.html" class="text-gray-400 hover:text-white">Survey</a>
+      <a href="portal.html" class="text-gray-400 hover:text-white">Portal</a>
+    </div>
+  </nav>
+
+  <main class="p-6 max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Executive Dashboard</h1>
+        <p class="text-gray-400 text-sm mt-1">Live feedback intelligence – updates every 10 seconds</p>
+      </div>
+      <div class="text-xs text-gray-500 bg-gray-800 px-3 py-1 rounded-full" id="last-updated">Connecting...</div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-gray-800 rounded-xl p-4">
+        <p class="text-gray-400 text-xs mb-1">Total Feedback</p>
+        <p class="text-3xl font-bold" id="stat-total">–</p>
+      </div>
+      <div class="bg-green-900/40 border border-green-700 rounded-xl p-4">
+        <p class="text-green-400 text-xs mb-1">Positive</p>
+        <p class="text-3xl font-bold text-green-400" id="stat-positive">–</p>
+      </div>
+      <div class="bg-red-900/40 border border-red-700 rounded-xl p-4">
+        <p class="text-red-400 text-xs mb-1">Negative</p>
+        <p class="text-3xl font-bold text-red-400" id="stat-negative">–</p>
+      </div>
+      <div class="bg-orange-900/40 border border-orange-700 rounded-xl p-4">
+        <p class="text-orange-400 text-xs mb-1">High Urgency</p>
+        <p class="text-3xl font-bold text-orange-400" id="stat-urgency">–</p>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-gray-800 rounded-xl p-4">
+        <h2 class="text-sm font-semibold text-gray-300 mb-3">Sentiment Split</h2>
+        <canvas id="chart-sentiment" height="200"></canvas>
+      </div>
+      <div class="bg-gray-800 rounded-xl p-4">
+        <h2 class="text-sm font-semibold text-gray-300 mb-3">Category Breakdown</h2>
+        <canvas id="chart-category" height="200"></canvas>
+      </div>
+      <div class="bg-gray-800 rounded-xl p-4">
+        <h2 class="text-sm font-semibold text-gray-300 mb-3">Source Distribution</h2>
+        <canvas id="chart-source" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Live Feed -->
+    <div class="bg-gray-800 rounded-xl p-4">
+      <h2 class="text-sm font-semibold text-gray-300 mb-4">Live Feedback Feed</h2>
+      <div id="feed" class="space-y-3 max-h-96 overflow-y-auto"></div>
+    </div>
+
+  </main>
+
+  <script>
+    const API = 'http://localhost:8000';
+    let sentimentChart, categoryChart, sourceChart;
+
+    const SENTIMENT_COLORS = { Positive: '#22c55e', Negative: '#ef4444', Neutral: '#94a3b8' };
+    const URGENCY_BADGE = { High: 'bg-red-500', Medium: 'bg-orange-500', Low: 'bg-gray-600' };
+    const STATUS_BADGE = { New: 'bg-blue-600', 'In-Progress': 'bg-yellow-600', Resolved: 'bg-green-700' };
+
+    function buildDonut(id, labels, data, colors) {
+      return new Chart(document.getElementById(id), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+        options: { plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } }, cutout: '65%' }
+      });
+    }
+
+    function buildBar(id, labels, data) {
+      return new Chart(document.getElementById(id), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{ data, backgroundColor: '#3b82f6', borderRadius: 6 }]
+        },
+        options: {
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { color: '#374151' } },
+            y: { ticks: { color: '#cbd5e1' }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    async function refresh() {
+      try {
+        const [sumRes, feedRes] = await Promise.all([
+          fetch(`${API}/summary`), fetch(`${API}/feed?limit=20`)
+        ]);
+        const summary = await sumRes.json();
+        const feed = await feedRes.json();
+
+        // Cards
+        document.getElementById('stat-total').textContent = summary.total;
+        document.getElementById('stat-positive').textContent = summary.sentiments?.Positive ?? 0;
+        document.getElementById('stat-negative').textContent = summary.sentiments?.Negative ?? 0;
+        document.getElementById('stat-urgency').textContent = summary.urgencies?.High ?? 0;
+        document.getElementById('last-updated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+
+        // Charts
+        const sLabels = Object.keys(summary.sentiments || {});
+        const sData   = Object.values(summary.sentiments || {});
+        const sColors = sLabels.map(l => SENTIMENT_COLORS[l] || '#6b7280');
+
+        const cLabels = Object.keys(summary.categories || {});
+        const cData   = Object.values(summary.categories || {});
+
+        const srcLabels = Object.keys(summary.sources || {});
+        const srcData   = Object.values(summary.sources || {});
+
+        if (!sentimentChart) {
+          sentimentChart = buildDonut('chart-sentiment', sLabels, sData, sColors);
+          categoryChart  = buildBar('chart-category', cLabels, cData);
+          sourceChart    = buildDonut('chart-source', srcLabels, srcData,
+            ['#3b82f6','#8b5cf6','#f59e0b','#10b981','#ef4444','#06b6d4']);
+        } else {
+          sentimentChart.data.labels = sLabels;
+          sentimentChart.data.datasets[0].data = sData;
+          sentimentChart.data.datasets[0].backgroundColor = sColors;
+          sentimentChart.update();
+
+          categoryChart.data.labels = cLabels;
+          categoryChart.data.datasets[0].data = cData;
+          categoryChart.update();
+
+          sourceChart.data.labels = srcLabels;
+          sourceChart.data.datasets[0].data = srcData;
+          sourceChart.update();
+        }
+
+        // Feed
+        const feedEl = document.getElementById('feed');
+        feedEl.innerHTML = feed.map(item => `
+          <div class="flex items-start gap-3 bg-gray-700/50 rounded-lg p-3">
+            <span class="text-xs px-2 py-1 rounded-full ${URGENCY_BADGE[item.urgency] || 'bg-gray-600'} font-semibold shrink-0">${item.urgency}</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-gray-100 truncate">${item.text}</p>
+              <div class="flex gap-2 mt-1 text-xs text-gray-400">
+                <span>${item.source}</span> · <span>${item.category}</span> ·
+                <span style="color:${SENTIMENT_COLORS[item.sentiment]}">${item.sentiment}</span> ·
+                <span class="px-1 rounded ${STATUS_BADGE[item.status] || 'bg-gray-600'}">${item.status}</span>
+              </div>
+            </div>
+            <select onchange="updateStatus(${item.id}, this.value)"
+              class="text-xs bg-gray-600 border border-gray-500 rounded px-1 py-0.5 text-white shrink-0">
+              <option ${item.status==='New'?'selected':''}>New</option>
+              <option ${item.status==='In-Progress'?'selected':''}>In-Progress</option>
+              <option ${item.status==='Resolved'?'selected':''}>Resolved</option>
+            </select>
+          </div>
+        `).join('');
+
+      } catch (e) {
+        document.getElementById('last-updated').textContent = 'API offline – start backend first';
+      }
+    }
+
+    async function updateStatus(id, status) {
+      await fetch(`${API}/feedback/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+    }
+
+    refresh();
+    setInterval(refresh, 10000);
+  </script>
+</body>
+</html>

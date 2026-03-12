@@ -6,74 +6,230 @@
   <title>SFAO – Executive Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      --border-color: #475569;
+      --accent-primary: #3b82f6;
+      --accent-secondary: #8b5cf6;
+    }
+    
+    [data-theme="light"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --border-color: #cbd5e1;
+      --accent-primary: #3b82f6;
+      --accent-secondary: #8b5cf6;
+    }
+    
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+    
+    .card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+    }
+    
+    .nav-bg {
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .text-muted { color: var(--text-muted); }
+    .text-secondary { color: var(--text-secondary); }
+    
+    .theme-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    .social-icon {
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 10px;
+    }
+    
+    .twitter { background: #1da1f2; color: white; }
+    .facebook { background: #4267b2; color: white; }
+    .instagram { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white; }
+    .linkedin { background: #0077b5; color: white; }
+    .reddit { background: #ff4500; color: white; }
+  </style>
 </head>
-<body class="bg-gray-950 text-white min-h-screen font-sans">
+<body class="min-h-screen font-sans theme-transition" data-theme="dark">
 
   <!-- Nav -->
-  <nav class="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">S</div>
-      <span class="text-lg font-semibold tracking-wide">SFAO</span>
-      <span class="text-gray-400 text-sm">Smart Feedback Analyzer for Organization</span>
-    </div>
-    <div class="flex gap-4 text-sm">
-      <a href="index.html" class="text-blue-400 font-medium">Dashboard</a>
-      <a href="survey.html" class="text-gray-400 hover:text-white">Survey</a>
-      <a href="portal.html" class="text-gray-400 hover:text-white">Portal</a>
+  <nav class="nav-bg px-6 py-4 sticky top-0 z-50 backdrop-blur-sm theme-transition">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="relative">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center font-bold text-lg shadow-lg">
+            <i class="fas fa-chart-line text-white"></i>
+          </div>
+          <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            SFAO
+          </h1>
+          <p class="text-muted text-xs">Smart Feedback Analyzer</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-6">
+        <nav class="hidden md:flex gap-6">
+          <a href="index.html" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium">
+            <i class="fas fa-chart-pie mr-2"></i>Dashboard
+          </a>
+          <a href="survey.html" class="px-3 py-2 rounded-lg text-secondary hover:text-primary text-sm font-medium theme-transition">
+            <i class="fas fa-poll mr-2"></i>Survey
+          </a>
+          <a href="portal.html" class="px-3 py-2 rounded-lg text-secondary hover:text-primary text-sm font-medium theme-transition">
+            <i class="fas fa-user-circle mr-2"></i>Portal
+          </a>
+        </nav>
+        
+        <!-- Theme Toggle -->
+        <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 theme-transition" id="theme-toggle">
+          <i class="fas fa-moon text-lg"></i>
+        </button>
+      </div>
     </div>
   </nav>
 
   <main class="p-6 max-w-7xl mx-auto">
 
     <!-- Header -->
-    <div class="mb-6 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Executive Dashboard</h1>
-        <p class="text-gray-400 text-sm mt-1">Live feedback intelligence – updates every 10 seconds</p>
+    <div class="mb-8 text-center">
+      <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
+        Executive Dashboard
+      </h1>
+      <p class="text-muted text-lg">Live feedback intelligence – updates every 10 seconds</p>
+      <div class="mt-4 inline-flex items-center gap-2 card px-4 py-2 rounded-full text-sm">
+        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+        <span id="last-updated">Connecting...</span>
       </div>
-      <div class="text-xs text-gray-500 bg-gray-800 px-3 py-1 rounded-full" id="last-updated">Connecting...</div>
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-gray-800 rounded-xl p-4">
-        <p class="text-gray-400 text-xs mb-1">Total Feedback</p>
-        <p class="text-3xl font-bold" id="stat-total">–</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div class="card rounded-2xl p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-muted text-sm font-medium mb-1">Total Feedback</p>
+            <p class="text-3xl font-bold" id="stat-total">–</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-comments text-blue-600 text-xl"></i>
+          </div>
+        </div>
       </div>
-      <div class="bg-green-900/40 border border-green-700 rounded-xl p-4">
-        <p class="text-green-400 text-xs mb-1">Positive</p>
-        <p class="text-3xl font-bold text-green-400" id="stat-positive">–</p>
+      
+      <div class="card rounded-2xl p-6 bg-gradient-to-br from-green-50 to-emerald-100 border-green-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-green-600 text-sm font-medium mb-1">Positive</p>
+            <p class="text-3xl font-bold text-green-600" id="stat-positive">–</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-thumbs-up text-green-600 text-xl"></i>
+          </div>
+        </div>
       </div>
-      <div class="bg-red-900/40 border border-red-700 rounded-xl p-4">
-        <p class="text-red-400 text-xs mb-1">Negative</p>
-        <p class="text-3xl font-bold text-red-400" id="stat-negative">–</p>
+      
+      <div class="card rounded-2xl p-6 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-red-600 text-sm font-medium mb-1">Negative</p>
+            <p class="text-3xl font-bold text-red-600" id="stat-negative">–</p>
+          </div>
+          <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-thumbs-down text-red-600 text-xl"></i>
+          </div>
+        </div>
       </div>
-      <div class="bg-orange-900/40 border border-orange-700 rounded-xl p-4">
-        <p class="text-orange-400 text-xs mb-1">High Urgency</p>
-        <p class="text-3xl font-bold text-orange-400" id="stat-urgency">–</p>
+      
+      <div class="card rounded-2xl p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-orange-600 text-sm font-medium mb-1">High Urgency</p>
+            <p class="text-3xl font-bold text-orange-600" id="stat-urgency">–</p>
+          </div>
+          <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-orange-600 text-xl"></i>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Charts Row -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-gray-800 rounded-xl p-4">
-        <h2 class="text-sm font-semibold text-gray-300 mb-3">Sentiment Split</h2>
-        <canvas id="chart-sentiment" height="200"></canvas>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+      <div class="card rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Sentiment Analysis</h2>
+          <i class="fas fa-heart text-red-500"></i>
+        </div>
+        <div class="h-64">
+          <canvas id="chart-sentiment"></canvas>
+        </div>
       </div>
-      <div class="bg-gray-800 rounded-xl p-4">
-        <h2 class="text-sm font-semibold text-gray-300 mb-3">Category Breakdown</h2>
-        <canvas id="chart-category" height="200"></canvas>
+      
+      <div class="card rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Category Breakdown</h2>
+          <i class="fas fa-tags text-blue-500"></i>
+        </div>
+        <div class="h-64">
+          <canvas id="chart-category"></canvas>
+        </div>
       </div>
-      <div class="bg-gray-800 rounded-xl p-4">
-        <h2 class="text-sm font-semibold text-gray-300 mb-3">Source Distribution</h2>
-        <canvas id="chart-source" height="200"></canvas>
+      
+      <div class="card rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Source Distribution</h2>
+          <i class="fas fa-share-alt text-purple-500"></i>
+        </div>
+        <div class="h-64">
+          <canvas id="chart-source"></canvas>
+        </div>
       </div>
     </div>
 
     <!-- Live Feed -->
-    <div class="bg-gray-800 rounded-xl p-4">
-      <h2 class="text-sm font-semibold text-gray-300 mb-4">Live Feedback Feed</h2>
-      <div id="feed" class="space-y-3 max-h-96 overflow-y-auto"></div>
+    <div class="card rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold flex items-center gap-3">
+          <i class="fas fa-rss text-blue-500"></i>
+          Live Feedback Feed
+        </h2>
+        <div class="flex items-center gap-2 text-sm text-muted">
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          Real-time updates
+        </div>
+      </div>
+      <div id="feed" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Feed items will be populated here -->
+      </div>
     </div>
 
   </main>
@@ -83,30 +239,123 @@
     let sentimentChart, categoryChart, sourceChart;
 
     const SENTIMENT_COLORS = { Positive: '#22c55e', Negative: '#ef4444', Neutral: '#94a3b8' };
-    const URGENCY_BADGE = { High: 'bg-red-500', Medium: 'bg-orange-500', Low: 'bg-gray-600' };
-    const STATUS_BADGE = { New: 'bg-blue-600', 'In-Progress': 'bg-yellow-600', Resolved: 'bg-green-700' };
+    const URGENCY_BADGE = { 
+      High: 'bg-gradient-to-r from-red-500 to-red-600 text-white', 
+      Medium: 'bg-gradient-to-r from-orange-500 to-orange-600 text-white', 
+      Low: 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' 
+    };
+    const STATUS_BADGE = { 
+      New: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white', 
+      'In-Progress': 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white', 
+      Resolved: 'bg-gradient-to-r from-green-500 to-green-600 text-white' 
+    };
+
+    const SOCIAL_ICONS = {
+      Twitter: '<i class="fab fa-twitter social-icon twitter"></i>',
+      Facebook: '<i class="fab fa-facebook-f social-icon facebook"></i>',
+      Instagram: '<i class="fab fa-instagram social-icon instagram"></i>',
+      LinkedIn: '<i class="fab fa-linkedin-in social-icon linkedin"></i>',
+      Reddit: '<i class="fab fa-reddit-alien social-icon reddit"></i>',
+      Survey: '<i class="fas fa-poll social-icon" style="background: #6366f1; color: white;"></i>'
+    };
+
+    // Theme Management
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('sfao-theme', newTheme);
+      
+      const icon = document.querySelector('#theme-toggle i');
+      icon.className = newTheme === 'dark' ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
+      
+      // Update charts with new theme
+      updateChartsTheme();
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('sfao-theme') || 'dark';
+      document.body.setAttribute('data-theme', savedTheme);
+      const icon = document.querySelector('#theme-toggle i');
+      icon.className = savedTheme === 'dark' ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
+    }
+
+    function updateChartsTheme() {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      const textColor = isDark ? '#cbd5e1' : '#334155';
+      const gridColor = isDark ? '#374151' : '#e2e8f0';
+      
+      [sentimentChart, categoryChart, sourceChart].forEach(chart => {
+        if (chart) {
+          if (chart.options.plugins?.legend?.labels) {
+            chart.options.plugins.legend.labels.color = textColor;
+          }
+          if (chart.options.scales) {
+            Object.values(chart.options.scales).forEach(scale => {
+              if (scale.ticks) scale.ticks.color = textColor;
+              if (scale.grid) scale.grid.color = gridColor;
+            });
+          }
+          chart.update();
+        }
+      });
+    }
 
     function buildDonut(id, labels, data, colors) {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
       return new Chart(document.getElementById(id), {
         type: 'doughnut',
         data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
-        options: { plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } }, cutout: '65%' }
+        options: { 
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { 
+              position: 'bottom',
+              labels: { 
+                color: isDark ? '#cbd5e1' : '#334155', 
+                font: { size: 12 },
+                padding: 15,
+                usePointStyle: true
+              } 
+            } 
+          }, 
+          cutout: '70%' 
+        }
       });
     }
 
     function buildBar(id, labels, data) {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
       return new Chart(document.getElementById(id), {
         type: 'bar',
         data: {
           labels,
-          datasets: [{ data, backgroundColor: '#3b82f6', borderRadius: 6 }]
+          datasets: [{ 
+            data, 
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1,
+            borderRadius: 8,
+            borderSkipped: false
+          }]
         },
         options: {
+          responsive: true,
+          maintainAspectRatio: false,
           indexAxis: 'y',
           plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#94a3b8' }, grid: { color: '#374151' } },
-            y: { ticks: { color: '#cbd5e1' }, grid: { display: false } }
+            x: { 
+              ticks: { color: isDark ? '#94a3b8' : '#64748b' }, 
+              grid: { color: isDark ? '#374151' : '#e2e8f0' } 
+            },
+            y: { 
+              ticks: { color: isDark ? '#cbd5e1' : '#334155' }, 
+              grid: { display: false } 
+            }
           }
         }
       });
@@ -160,39 +409,82 @@
 
         // Feed
         const feedEl = document.getElementById('feed');
-        feedEl.innerHTML = feed.map(item => `
-          <div class="flex items-start gap-3 bg-gray-700/50 rounded-lg p-3">
-            <span class="text-xs px-2 py-1 rounded-full ${URGENCY_BADGE[item.urgency] || 'bg-gray-600'} font-semibold shrink-0">${item.urgency}</span>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm text-gray-100 truncate">${item.text}</p>
-              <div class="flex gap-2 mt-1 text-xs text-gray-400">
-                <span>${item.source}</span> · <span>${item.category}</span> ·
-                <span style="color:${SENTIMENT_COLORS[item.sentiment]}">${item.sentiment}</span> ·
-                <span class="px-1 rounded ${STATUS_BADGE[item.status] || 'bg-gray-600'}">${item.status}</span>
+        feedEl.innerHTML = feed.length ? feed.map(item => `
+          <div class="card rounded-xl p-4 hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+            <div class="flex items-start gap-4">
+              <div class="flex flex-col items-center gap-2">
+                ${SOCIAL_ICONS[item.source] || '<i class="fas fa-comment social-icon" style="background: #6b7280; color: white;"></i>'}
+                <span class="text-xs px-3 py-1 rounded-full font-semibold ${URGENCY_BADGE[item.urgency] || 'bg-gray-400 text-white'}">${item.urgency}</span>
+              </div>
+              
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <p class="text-sm leading-relaxed">${item.text}</p>
+                  <select onchange="updateStatus(${item.id}, this.value)"
+                    class="text-xs card border rounded-lg px-2 py-1 font-medium shrink-0 cursor-pointer hover:shadow-sm transition-all">
+                    <option ${item.status==='New'?'selected':''}>New</option>
+                    <option ${item.status==='In-Progress'?'selected':''}>In-Progress</option>
+                    <option ${item.status==='Resolved'?'selected':''}>Resolved</option>
+                  </select>
+                </div>
+                
+                <div class="flex items-center gap-3 text-xs text-muted">
+                  <span class="flex items-center gap-1">
+                    <i class="fas fa-tag"></i>
+                    ${item.category}
+                  </span>
+                  <span class="flex items-center gap-1" style="color:${SENTIMENT_COLORS[item.sentiment]}">
+                    <i class="fas ${item.sentiment === 'Positive' ? 'fa-smile' : item.sentiment === 'Negative' ? 'fa-frown' : 'fa-meh'}"></i>
+                    ${item.sentiment}
+                  </span>
+                  <span class="flex items-center gap-1 px-2 py-1 rounded-full font-medium ${STATUS_BADGE[item.status] || 'bg-gray-400 text-white'}">
+                    <i class="fas ${item.status === 'New' ? 'fa-plus' : item.status === 'In-Progress' ? 'fa-spinner' : 'fa-check'}"></i>
+                    ${item.status}
+                  </span>
+                  <span class="flex items-center gap-1 ml-auto">
+                    <i class="fas fa-clock"></i>
+                    ${new Date(item.created_at || Date.now()).toLocaleTimeString()}
+                  </span>
+                </div>
               </div>
             </div>
-            <select onchange="updateStatus(${item.id}, this.value)"
-              class="text-xs bg-gray-600 border border-gray-500 rounded px-1 py-0.5 text-white shrink-0">
-              <option ${item.status==='New'?'selected':''}>New</option>
-              <option ${item.status==='In-Progress'?'selected':''}>In-Progress</option>
-              <option ${item.status==='Resolved'?'selected':''}>Resolved</option>
-            </select>
           </div>
-        `).join('');
+        `).join('') : `
+          <div class="text-center py-12">
+            <i class="fas fa-comments text-4xl text-muted mb-4"></i>
+            <p class="text-muted">No feedback available yet.</p>
+            <p class="text-xs text-muted mt-1">Run the simulator to generate test data.</p>
+          </div>
+        `;
 
       } catch (e) {
         document.getElementById('last-updated').textContent = 'API offline – start backend first';
+        document.getElementById('feed').innerHTML = `
+          <div class="text-center py-12">
+            <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+            <p class="text-red-500 font-medium">Connection Failed</p>
+            <p class="text-xs text-muted mt-1">Please ensure the backend server is running on port 8000.</p>
+          </div>
+        `;
       }
     }
 
     async function updateStatus(id, status) {
-      await fetch(`${API}/feedback/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
+      try {
+        await fetch(`${API}/feedback/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        // Refresh to show updated status
+        setTimeout(refresh, 500);
+      } catch (e) {
+        console.error('Failed to update status:', e);
+      }
     }
 
+    // Initialize
+    initTheme();
     refresh();
     setInterval(refresh, 10000);
   </script>

@@ -5,26 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SFAO – Submit Feedback</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      --border-color: #475569;
+    }
+    
+    [data-theme="light"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --border-color: #cbd5e1;
+    }
+    
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+    
+    .card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+    
+    .nav-bg {
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .text-muted { color: var(--text-muted); }
+    .text-secondary { color: var(--text-secondary); }
+  </style>
 </head>
-<body class="bg-gray-950 text-white min-h-screen font-sans flex flex-col">
+<body class="min-h-screen font-sans flex flex-col" data-theme="dark">
 
   <!-- Nav -->
-  <nav class="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">S</div>
-      <span class="text-lg font-semibold">SFAO</span>
-    </div>
-    <div class="flex gap-4 text-sm">
-      <a href="index.html" class="text-gray-400 hover:text-white">Dashboard</a>
-      <a href="survey.html" class="text-blue-400 font-medium">Survey</a>
-      <a href="portal.html" class="text-gray-400 hover:text-white">Portal</a>
+  <nav class="nav-bg px-6 py-4 sticky top-0 z-50 backdrop-blur-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center font-bold text-lg shadow-lg">
+          <i class="fas fa-poll text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            SFAO Survey
+          </h1>
+          <p class="text-muted text-xs">Employee Feedback Portal</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-6">
+        <nav class="hidden md:flex gap-6">
+          <a href="index.html" class="px-3 py-2 rounded-lg text-secondary hover:text-primary text-sm font-medium">
+            <i class="fas fa-chart-pie mr-2"></i>Dashboard
+          </a>
+          <a href="survey.html" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium">
+            <i class="fas fa-poll mr-2"></i>Survey
+          </a>
+          <a href="portal.html" class="px-3 py-2 rounded-lg text-secondary hover:text-primary text-sm font-medium">
+            <i class="fas fa-user-circle mr-2"></i>Portal
+          </a>
+        </nav>
+        
+        <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700" id="theme-toggle">
+          <i class="fas fa-sun text-lg"></i>
+        </button>
+      </div>
     </div>
   </nav>
 
   <main class="flex-1 flex items-center justify-center p-6">
-    <div class="w-full max-w-lg bg-gray-800 rounded-2xl p-8 shadow-xl">
-      <h1 class="text-2xl font-bold mb-1">Employee Feedback Survey</h1>
-      <p class="text-gray-400 text-sm mb-6">Your response is anonymous and helps improve our organization.</p>
+    <div class="w-full max-w-xl card rounded-3xl p-10 shadow-2xl">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+          <i class="fas fa-comments text-2xl text-white"></i>
+        </div>
+        <h1 class="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Employee Feedback Survey</h1>
+        <p class="text-muted">Your response is anonymous and helps improve our organization.</p>
+      </div>
 
       <form id="survey-form" class="space-y-5">
 
@@ -87,6 +156,26 @@
     const API = 'http://localhost:8000';
     let selectedRating = 0;
 
+    // Theme Management
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('sfao-theme', newTheme);
+      
+      const icon = document.querySelector('#theme-toggle i');
+      icon.className = newTheme === 'dark' ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('sfao-theme') || 'dark';
+      document.body.setAttribute('data-theme', savedTheme);
+      const icon = document.querySelector('#theme-toggle i');
+      icon.className = savedTheme === 'dark' ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
+    }
+
     // Star rating
     document.querySelectorAll('.star').forEach(star => {
       star.addEventListener('click', () => {
@@ -134,9 +223,12 @@
     function showResult(msg, type) {
       const el = document.getElementById('result');
       el.textContent = msg;
-      el.className = `text-center text-sm py-2 rounded-lg ${type === 'success' ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'}`;
+      el.className = `text-center text-sm py-3 px-4 rounded-xl font-medium ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`;
       el.classList.remove('hidden');
     }
+
+    // Initialize theme
+    initTheme();
   </script>
 </body>
 </html>

@@ -3,662 +3,1636 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SFAO – HUD Interface</title>
+  <title>SFAO - Analytics Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-    
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
     :root {
-      --hud-primary: #00ffff;
-      --hud-secondary: #00ff88;
-      --hud-accent: #ff6600;
-      --hud-warning: #ffaa00;
-      --hud-danger: #ff0066;
-      --hud-bg: #0a0a0f;
-      --hud-surface: #1a1a2e;
-      --hud-border: #16213e;
-      --hud-text: #e0e6ff;
-      --hud-text-dim: #8892b0;
+      --bg: #0b1020;
+      --bg-soft: #111730;
+      --panel: #151d3c;
+      --panel-hover: #1a2448;
+      --line: #2a3769;
+      --text: #e8ecff;
+      --muted: #9aa5cf;
+      --accent: #54a7ff;
+      --accent-2: #44d7b6;
+      --danger: #ff6b8a;
+      --warning: #ffbe4d;
+      --shadow: 0 12px 30px rgba(4, 8, 22, 0.45);
     }
-    
+
+    [data-theme='light'] {
+      --bg: #f3f6ff;
+      --bg-soft: #ffffff;
+      --panel: #ffffff;
+      --panel-hover: #f7f9ff;
+      --line: #d8dff5;
+      --text: #1a2550;
+      --muted: #5d6a9c;
+      --accent: #387dff;
+      --accent-2: #11b293;
+      --danger: #dc4d73;
+      --warning: #cc8b12;
+      --shadow: 0 12px 30px rgba(45, 61, 116, 0.12);
+    }
+
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #3b4b84 transparent;
+    }
+
     body {
-      background: linear-gradient(135deg, #0a0a0f 0%, #16213e 50%, #0f1419 100%);
-      font-family: 'Orbitron', monospace;
-      color: var(--hud-text);
-      overflow-x: hidden;
-    }
-    
-    .hud-container {
-      background: radial-gradient(ellipse at center, rgba(0,255,255,0.1) 0%, transparent 70%);
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(70rem 30rem at 10% -5%, rgba(84, 167, 255, 0.18), transparent 45%),
+        radial-gradient(50rem 30rem at 100% -10%, rgba(68, 215, 182, 0.1), transparent 45%),
+        linear-gradient(160deg, #080d1b 0%, #0b1020 55%, #0f1430 100%);
       min-height: 100vh;
-      position: relative;
+      overflow-x: hidden;
+      transition: background 200ms ease, color 180ms ease;
     }
-    
-    .hud-grid {
-      background-image: 
-        linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px);
-      background-size: 20px 20px;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      pointer-events: none;
-      opacity: 0.3;
+
+    [data-theme='light'] body {
+      background:
+        radial-gradient(70rem 30rem at 10% -5%, rgba(56, 125, 255, 0.15), transparent 45%),
+        radial-gradient(50rem 30rem at 100% -10%, rgba(17, 178, 147, 0.1), transparent 45%),
+        linear-gradient(160deg, #f5f8ff 0%, #eef3ff 55%, #f8faff 100%);
     }
-    
-    .hud-panel {
-      background: linear-gradient(145deg, rgba(26,26,46,0.9) 0%, rgba(16,33,62,0.8) 100%);
-      border: 2px solid transparent;
-      background-clip: padding-box;
-      position: relative;
+
+    .shell {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      min-height: 100%;
+    }
+
+    .app-frame {
+      width: min(1600px, calc(100% - 1.8rem));
+      margin: 0.7rem auto;
+      min-height: calc(100vh - 2rem);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(95, 117, 197, 0.25);
       overflow: hidden;
+      background: rgba(8, 13, 27, 0.55);
+      box-shadow: 0 22px 50px rgba(4, 8, 22, 0.35);
     }
-    
-    .hud-panel::before {
-      content: '';
-      position: absolute;
-      inset: -2px;
-      padding: 2px;
-      background: linear-gradient(45deg, var(--hud-primary), var(--hud-secondary), var(--hud-accent));
-      border-radius: inherit;
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask-composite: exclude;
-      opacity: 0.8;
+
+    [data-theme='light'] .app-frame {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 14px 35px rgba(45, 61, 116, 0.14);
     }
-    
-    .hud-panel:hover::before {
-      opacity: 1;
-      box-shadow: 0 0 20px rgba(0,255,255,0.5);
-    }
-    
-    .hud-corner {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--hud-primary);
-    }
-    
-    .hud-corner.top-left {
-      top: -2px;
-      left: -2px;
-      border-right: none;
-      border-bottom: none;
-    }
-    
-    .hud-corner.top-right {
-      top: -2px;
-      right: -2px;
-      border-left: none;
-      border-bottom: none;
-    }
-    
-    .hud-corner.bottom-left {
-      bottom: -2px;
-      left: -2px;
-      border-right: none;
-      border-top: none;
-    }
-    
-    .hud-corner.bottom-right {
-      bottom: -2px;
-      right: -2px;
-      border-left: none;
-      border-top: none;
-    }
-    
-    .hud-text-glow {
-      text-shadow: 0 0 10px currentColor;
-      animation: textPulse 2s ease-in-out infinite alternate;
-    }
-    
-    @keyframes textPulse {
-      0% { text-shadow: 0 0 10px currentColor; }
-      100% { text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
-    }
-    
-    .hud-scan {
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .hud-scan::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(0,255,255,0.4), transparent);
-      animation: scan 3s linear infinite;
-    }
-    
-    @keyframes scan {
-      0% { left: -100%; }
-      100% { left: 100%; }
-    }
-    
-    .hud-nav {
-      background: rgba(10,10,15,0.95);
+
+    .sidebar {
+      border-right: 1px solid rgba(95, 117, 197, 0.28);
+      background: linear-gradient(180deg, rgba(17, 23, 48, 0.96) 0%, rgba(13, 19, 40, 0.95) 100%);
       backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(0,255,255,0.3);
-      box-shadow: 0 4px 20px rgba(0,255,255,0.1);
+      padding: 1.25rem 1rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
     }
-    
-    .hud-button {
-      background: linear-gradient(145deg, rgba(0,255,255,0.1), rgba(0,255,136,0.1));
-      border: 1px solid rgba(0,255,255,0.5);
-      color: var(--hud-primary);
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
+
+    [data-theme='light'] .sidebar {
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 250, 255, 0.95) 100%);
     }
-    
-    .hud-button:hover {
-      background: linear-gradient(145deg, rgba(0,255,255,0.2), rgba(0,255,136,0.2));
-      box-shadow: 0 0 15px rgba(0,255,255,0.5);
-      transform: translateY(-1px);
+
+    .brand {
+      display: flex;
+      gap: 0.8rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding: 0.75rem;
+      border-radius: 0.9rem;
+      background: rgba(84, 167, 255, 0.08);
+      border: 1px solid rgba(84, 167, 255, 0.2);
     }
-    
-    .hud-button.active {
-      background: linear-gradient(145deg, var(--hud-primary), var(--hud-secondary));
-      color: var(--hud-bg);
-      box-shadow: 0 0 20px rgba(0,255,255,0.8);
+
+    .brand-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+      background: linear-gradient(135deg, #54a7ff, #44d7b6);
+      box-shadow: 0 10px 25px rgba(84, 167, 255, 0.32);
     }
-    
-    .metric-display {
-      font-size: 2.5rem;
-      font-weight: 900;
-      background: linear-gradient(45deg, var(--hud-primary), var(--hud-secondary));
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
+
+    .nav-group {
+      margin-bottom: 1.2rem;
     }
-    
-    .status-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--hud-secondary);
-      box-shadow: 0 0 10px var(--hud-secondary);
-      animation: pulse 2s ease-in-out infinite alternate;
+
+    .nav-title {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.68rem;
+      font-weight: 700;
+      margin: 0.6rem 0.6rem;
     }
-    
-    @keyframes pulse {
-      0% { opacity: 1; transform: scale(1); }
-      100% { opacity: 0.7; transform: scale(1.2); }
-    }
-    
-    .hud-feed-item {
-      background: rgba(26,26,46,0.6);
-      border-left: 3px solid var(--hud-primary);
-      transition: all 0.3s ease;
-      position: relative;
-    }
-    
-    .hud-feed-item:hover {
-      background: rgba(26,26,46,0.8);
-      border-left-color: var(--hud-secondary);
-      transform: translateX(5px);
-    }
-    
-    .urgency-high { border-left-color: var(--hud-danger) !important; }
-    .urgency-medium { border-left-color: var(--hud-warning) !important; }
-    .urgency-low { border-left-color: var(--hud-primary) !important; }
-    
-    .social-hud-icon {
-      width: 24px;
-      height: 24px;
-      border: 1px solid var(--hud-primary);
-      background: rgba(0,255,255,0.1);
+
+    .nav-link {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: var(--hud-primary);
+      gap: 0.72rem;
+      padding: 0.72rem 0.78rem;
+      margin: 0.3rem 0;
+      border-radius: 0.8rem;
+      color: #c2cbed;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: 180ms ease;
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    .nav-link:hover {
+      color: #f4f7ff;
+      background: rgba(84, 167, 255, 0.1);
+      border-color: rgba(84, 167, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .nav-link.active {
+      color: #fff;
+      background: linear-gradient(135deg, rgba(84, 167, 255, 0.3), rgba(68, 215, 182, 0.16));
+      border-color: rgba(84, 167, 255, 0.3);
+      box-shadow: inset 0 0 0 1px rgba(84, 167, 255, 0.16);
+    }
+
+    .main {
+      padding: 1.2rem 1.2rem 1.8rem;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding: 0.9rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(95, 117, 197, 0.25);
+      background: rgba(17, 23, 48, 0.7);
+      backdrop-filter: blur(8px);
+    }
+
+    [data-theme='light'] .topbar {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.88);
+    }
+
+    .search {
+      flex: 1;
+      max-width: 540px;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.7rem 0.8rem;
+      border-radius: 0.75rem;
+      background: rgba(11, 16, 32, 0.7);
+      border: 1px solid rgba(95, 117, 197, 0.22);
+    }
+
+    [data-theme='light'] .search {
+      background: rgba(245, 248, 255, 0.95);
+      border: 1px solid var(--line);
+    }
+
+    .search input {
+      width: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .search input::placeholder {
+      color: #8692be;
+    }
+
+    .topbar-tools {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid rgba(95, 117, 197, 0.35);
+      background: rgba(11, 16, 32, 0.7);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all 160ms ease;
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(84, 167, 255, 0.45);
+      background: rgba(84, 167, 255, 0.12);
+    }
+
+    [data-theme='light'] .icon-btn {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: var(--line);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #b7ffe8;
+      border: 1px solid rgba(68, 215, 182, 0.4);
+      background: rgba(68, 215, 182, 0.12);
+      padding: 0.43rem 0.62rem;
+      border-radius: 999px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #44d7b6;
+      box-shadow: 0 0 0 0 rgba(68, 215, 182, 0.6);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(68, 215, 182, 0.65); }
+      70% { box-shadow: 0 0 0 9px rgba(68, 215, 182, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(68, 215, 182, 0); }
+    }
+
+    .hero {
+      margin: 1rem 0 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(1.3rem, 2vw, 1.8rem);
+      letter-spacing: -0.02em;
+      font-weight: 800;
+    }
+
+    .hero p {
+      margin: 0.3rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(21, 29, 60, 0.95), rgba(16, 23, 50, 0.95));
+      border: 1px solid rgba(95, 117, 197, 0.26);
+      border-radius: 1rem;
+      box-shadow: var(--shadow);
+      padding: 0.95rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 180ms ease, border-color 180ms ease;
+    }
+
+    [data-theme='light'] .card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.98));
+      border-color: var(--line);
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(84, 167, 255, 0.45);
+      background: linear-gradient(180deg, rgba(26, 36, 73, 0.96), rgba(17, 26, 56, 0.95));
+    }
+
+    .metric-title {
+      color: var(--muted);
+      font-size: 0.73rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.45rem;
+    }
+
+    .metric-value {
+      font-size: 1.65rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+
+    .metric-icon {
+      position: absolute;
+      right: 0.75rem;
+      top: 0.75rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      color: #d6e7ff;
+      background: rgba(84, 167, 255, 0.15);
+      border: 1px solid rgba(84, 167, 255, 0.24);
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1.45fr 1fr;
+      gap: 0.9rem;
+      margin-bottom: 0.95rem;
+    }
+
+    .panel {
+      border-radius: 1rem;
+      background: linear-gradient(180deg, rgba(21, 29, 60, 0.95), rgba(15, 23, 50, 0.95));
+      border: 1px solid rgba(95, 117, 197, 0.25);
+      box-shadow: var(--shadow);
+      padding: 0.95rem;
+    }
+
+    [data-theme='light'] .panel {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.98));
+      border-color: var(--line);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.7rem;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .panel-sub {
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 280px;
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 0.9rem;
+    }
+
+    .feed {
+      max-height: 360px;
+      overflow: auto;
+      display: grid;
+      gap: 0.62rem;
+      padding-right: 0.3rem;
+    }
+
+    .feed-item {
+      border: 1px solid rgba(95, 117, 197, 0.23);
+      border-left-width: 4px;
+      border-radius: 0.85rem;
+      background: rgba(17, 23, 48, 0.82);
+      padding: 0.75rem;
+      transition: all 180ms ease;
+      animation: reveal 240ms ease;
+    }
+
+    [data-theme='light'] .feed-item {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: var(--line);
+    }
+
+    .feed-item:hover {
+      transform: translateY(-1px);
+      background: rgba(24, 34, 68, 0.92);
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .urgency-high { border-left-color: var(--danger); }
+    .urgency-medium { border-left-color: var(--warning); }
+    .urgency-low { border-left-color: var(--accent); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.18rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      border: 1px solid transparent;
+    }
+
+    .badge-pos {
+      color: #b8ffe8;
+      background: rgba(68, 215, 182, 0.14);
+      border-color: rgba(68, 215, 182, 0.3);
+    }
+
+    .badge-neu {
+      color: #ffe4b2;
+      background: rgba(255, 190, 77, 0.14);
+      border-color: rgba(255, 190, 77, 0.3);
+    }
+
+    .badge-neg {
+      color: #ffd0dc;
+      background: rgba(255, 107, 138, 0.14);
+      border-color: rgba(255, 107, 138, 0.3);
+    }
+
+    .status-select {
+      background: rgba(11, 16, 32, 0.8);
+      color: #dce4ff;
+      border: 1px solid rgba(95, 117, 197, 0.35);
+      border-radius: 0.55rem;
+      font-size: 0.72rem;
+      padding: 0.3rem 0.45rem;
+      outline: none;
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 0.58rem;
+      margin-top: 0.2rem;
+    }
+
+    .mini-item {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(95, 117, 197, 0.22);
+      background: rgba(17, 23, 48, 0.75);
+      padding: 0.62rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: #cfdbff;
+    }
+
+    [data-theme='light'] .mini-item {
+      background: rgba(255, 255, 255, 0.96);
+      border-color: var(--line);
+      color: #31457b;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .profile-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      border: 1px solid rgba(95, 117, 197, 0.35);
+      background: rgba(11, 16, 32, 0.7);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.3rem 0.5rem 0.3rem 0.3rem;
+      cursor: pointer;
+      transition: all 180ms ease;
+    }
+
+    .profile-trigger:hover {
+      border-color: rgba(84, 167, 255, 0.5);
+      background: rgba(84, 167, 255, 0.12);
+    }
+
+    [data-theme='light'] .profile-trigger {
+      background: rgba(255, 255, 255, 0.96);
+      border-color: var(--line);
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 0.76rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #54a7ff, #44d7b6);
+    }
+
+    .profile-menu {
+      position: absolute;
+      right: 1.1rem;
+      top: 4.1rem;
+      width: 230px;
+      border-radius: 0.9rem;
+      border: 1px solid rgba(95, 117, 197, 0.35);
+      background: rgba(16, 23, 49, 0.98);
+      box-shadow: var(--shadow);
+      padding: 0.55rem;
+      display: none;
+      z-index: 50;
+    }
+
+    [data-theme='light'] .profile-menu {
+      background: rgba(255, 255, 255, 0.99);
+      border-color: var(--line);
+    }
+
+    .profile-menu.open {
+      display: block;
+      animation: reveal 180ms ease;
+    }
+
+    .menu-item {
+      width: 100%;
+      border: 0;
+      text-align: left;
+      border-radius: 0.65rem;
+      padding: 0.58rem 0.62rem;
+      color: var(--text);
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .menu-item:hover {
+      background: rgba(84, 167, 255, 0.14);
+    }
+
+    .settings-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 10, 20, 0.62);
+      backdrop-filter: blur(3px);
+      z-index: 60;
+      display: none;
+    }
+
+    .settings-overlay.open {
+      display: block;
+    }
+
+    .settings-drawer {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: min(430px, 96vw);
+      height: 100%;
+      background: linear-gradient(180deg, rgba(15, 22, 47, 0.98), rgba(13, 19, 40, 0.98));
+      border-left: 1px solid rgba(95, 117, 197, 0.35);
+      box-shadow: var(--shadow);
+      padding: 1rem;
+      overflow: auto;
+    }
+
+    [data-theme='light'] .settings-drawer {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(245, 249, 255, 0.99));
+      border-left: 1px solid var(--line);
+    }
+
+    .form-row {
+      display: grid;
+      gap: 0.32rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .form-row label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .form-row input,
+    .form-row select {
+      background: rgba(11, 16, 32, 0.72);
+      border: 1px solid rgba(95, 117, 197, 0.35);
+      color: var(--text);
+      border-radius: 0.65rem;
+      padding: 0.55rem 0.62rem;
+      outline: none;
+      font-size: 0.85rem;
+    }
+
+    [data-theme='light'] .form-row input,
+    [data-theme='light'] .form-row select {
+      background: rgba(255, 255, 255, 0.96);
+      border-color: var(--line);
+    }
+
+    .form-row input:focus,
+    .form-row select:focus {
+      border-color: rgba(84, 167, 255, 0.6);
+      box-shadow: 0 0 0 3px rgba(84, 167, 255, 0.12);
+    }
+
+    .switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      display: inline-block;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(95, 117, 197, 0.45);
+      border-radius: 999px;
+      transition: 180ms ease;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: '';
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 999px;
+      transition: 180ms ease;
+    }
+
+    .switch input:checked + .slider {
+      background: rgba(68, 215, 182, 0.9);
+    }
+
+    .switch input:checked + .slider:before {
+      transform: translateX(18px);
+    }
+
+    .settings-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.55rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      border: 1px solid rgba(95, 117, 197, 0.35);
+      border-radius: 0.65rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(11, 16, 32, 0.7);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      border-color: rgba(84, 167, 255, 0.45);
+      background: rgba(84, 167, 255, 0.2);
+    }
+
+    .toast {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 80;
+      background: rgba(16, 23, 49, 0.95);
+      border: 1px solid rgba(95, 117, 197, 0.35);
+      color: var(--text);
+      border-radius: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: none;
+      box-shadow: var(--shadow);
+    }
+
+    .toast.show {
+      display: block;
+      animation: reveal 180ms ease;
+    }
+
+    @media (max-width: 1120px) {
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-grid,
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      .app-frame {
+        width: calc(100% - 0.7rem);
+        margin: 0.35rem auto;
+        min-height: calc(100vh - 1rem);
+        border-radius: 1rem;
+      }
+
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        height: auto;
+        position: static;
+        border-right: 0;
+        border-bottom: 1px solid rgba(95, 117, 197, 0.3);
+      }
+
+      .main {
+        padding-top: 0.9rem;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar,
+      .hero {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .profile-menu {
+        right: 0.6rem;
+        top: 8rem;
+      }
     }
   </style>
 </head>
-<body class="hud-container">
-
-  <div class="hud-grid"></div>
-  
-  <!-- HUD Navigation -->
-  <nav class="hud-nav px-6 py-4 sticky top-0 z-50 relative">
-    <div class="hud-corner top-left"></div>
-    <div class="hud-corner top-right"></div>
-    
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-6">
-        <div class="relative">
-          <div class="w-16 h-16 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-lg flex items-center justify-center relative overflow-hidden">
-            <i class="fas fa-radar text-2xl text-white relative z-10"></i>
-            <div class="absolute inset-0 bg-gradient-to-br from-transparent via-white to-transparent opacity-20 animate-ping"></div>
-          </div>
-          <div class="status-indicator absolute -top-1 -right-1"></div>
-        </div>
-        
+<body>
+  <div class="app-frame">
+    <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">SF</div>
         <div>
-          <h1 class="text-2xl font-black hud-text-glow" style="color: var(--hud-primary)">
-            S.F.A.O
-          </h1>
-          <p class="text-xs tracking-widest" style="color: var(--hud-text-dim)">SMART FEEDBACK ANALYZER</p>
-          <p class="text-xs tracking-widest" style="color: var(--hud-text-dim)">ORGANIZATION v2.1.3</p>
+          <div class="text-sm font-extrabold tracking-wide">SFAO</div>
+          <div class="text-xs text-slate-300">Feedback Intelligence</div>
         </div>
       </div>
-      
-      <div class="flex items-center gap-4">
-        <div class="hidden md:flex gap-2">
-          <button class="hud-button px-4 py-2 rounded-lg text-sm font-bold active">
-            <i class="fas fa-tachometer-alt mr-2"></i>DASHBOARD
+
+      <div class="nav-group">
+        <p class="nav-title">Main</p>
+        <a class="nav-link active" href="index.html"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+        <a class="nav-link" href="survey.html"><i class="fa-solid fa-square-poll-vertical"></i>Survey</a>
+        <a class="nav-link" href="portal.html"><i class="fa-solid fa-users-rectangle"></i>Portal</a>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-title">Overview</p>
+        <a class="nav-link" id="nav-alerts" href="#feed-panel"><i class="fa-regular fa-bell"></i>Alerts</a>
+        <a class="nav-link" id="nav-categories" href="#category-panel"><i class="fa-solid fa-layer-group"></i>Categories</a>
+        <a class="nav-link" id="nav-channels" href="#source-panel"><i class="fa-solid fa-globe"></i>Channels</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="search">
+          <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+          <input id="search-input" type="text" placeholder="Search insights, keywords, categories..." />
+        </div>
+        <div class="topbar-tools">
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            Live sync
+          </div>
+          <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+            <i id="theme-icon" class="fa-solid fa-moon"></i>
           </button>
-          <a href="survey.html" class="hud-button px-4 py-2 rounded-lg text-sm font-bold">
-            <i class="fas fa-satellite mr-2"></i>SURVEY
-          </a>
-          <a href="portal.html" class="hud-button px-4 py-2 rounded-lg text-sm font-bold">
-            <i class="fas fa-user-astronaut mr-2"></i>PORTAL
-          </a>
-        </div>
-        
-        <div class="flex items-center gap-3 text-xs" style="color: var(--hud-text-dim)">
-          <div class="status-indicator"></div>
-          <span>SYSTEM ONLINE</span>
+          <button id="profile-trigger" class="profile-trigger" title="Open profile menu">
+            <span class="avatar" id="avatar-initials">FL</span>
+            <span class="text-xs font-bold" id="user-name-display">Felix</span>
+            <i class="fa-solid fa-chevron-down text-xs"></i>
+          </button>
         </div>
       </div>
-    </div>
-  </nav>
 
-  <main class="p-6 max-w-7xl mx-auto relative z-10">
-
-    <!-- HUD Header -->
-    <div class="mb-10 text-center relative">
-      <div class="hud-panel rounded-xl p-8 hud-scan">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-        
-        <h1 class="text-4xl font-black mb-3 hud-text-glow tracking-wider" style="color: var(--hud-primary)">
-          EXECUTIVE COMMAND CENTER
-        </h1>
-        <p class="text-lg tracking-wide" style="color: var(--hud-text-dim)">
-          REAL-TIME INTELLIGENCE MONITORING • UPDATE CYCLE: 10 SECONDS
-        </p>
-        <div class="mt-4 inline-flex items-center gap-3 px-4 py-2 rounded-full border border-cyan-400 bg-cyan-400/10">
-          <div class="status-indicator"></div>
-          <span id="last-updated" class="text-sm font-bold" style="color: var(--hud-primary)">INITIALIZING...</span>
+      <div id="profile-menu" class="profile-menu">
+        <div class="px-2 py-2 border-b" style="border-color:rgba(95,117,197,0.25);">
+          <p id="profile-menu-name" class="text-sm font-bold m-0">Felix</p>
+          <p id="profile-menu-role" class="muted m-0">Executive Admin</p>
         </div>
+        <button class="menu-item" id="open-profile-settings"><i class="fa-solid fa-user-gear"></i>Profile settings</button>
+        <button class="menu-item" id="open-my-profile"><i class="fa-regular fa-id-badge"></i>My profile</button>
+        <button class="menu-item" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
       </div>
-    </div>
 
-    <!-- HUD Metrics Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-      
-      <div class="hud-panel rounded-xl p-6 relative">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-        
-        <div class="flex items-center justify-between mb-4">
+      <div class="hero">
+        <div>
+          <h1>Analytics Dashboard</h1>
+          <p>Track sentiment trends, urgency spikes, and source activity in real time.</p>
+        </div>
+        <p class="muted" id="last-updated">Last update: syncing...</p>
+      </div>
+
+      <section class="panel" style="margin-bottom:0.95rem;">
+        <header class="panel-header" style="margin-bottom:0.55rem;">
           <div>
-            <p class="text-xs font-bold tracking-wider mb-1" style="color: var(--hud-text-dim)">TOTAL.FEEDBACK</p>
-            <p class="metric-display" id="stat-total">---</p>
+            <h2 class="panel-title">Quick Filters</h2>
+            <p class="panel-sub">Alerts, categories, and channels now filter the live feed.</p>
           </div>
-          <div class="w-12 h-12 rounded-lg bg-cyan-400/20 flex items-center justify-center">
-            <i class="fas fa-database text-xl" style="color: var(--hud-primary)"></i>
-          </div>
+        </header>
+        <div class="flex flex-wrap items-center gap-2" style="margin-bottom:0.45rem;">
+          <button id="alerts-toggle" class="btn" type="button"><i class="fa-solid fa-bell mr-1"></i>Alerts only</button>
+          <select id="category-filter" class="status-select">
+            <option value="all">All categories</option>
+          </select>
+          <select id="channel-filter" class="status-select">
+            <option value="all">All channels</option>
+          </select>
+          <button id="clear-filters" class="btn" type="button">Clear filters</button>
+          <span id="filter-summary" class="muted" style="margin-left:auto;">Showing all feedback</span>
         </div>
-        <div class="h-1 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full"></div>
-      </div>
-      
-      <div class="hud-panel rounded-xl p-6 relative">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-        
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <p class="text-xs font-bold tracking-wider mb-1" style="color: var(--hud-secondary)">POSITIVE.INDEX</p>
-            <p class="metric-display" style="background: linear-gradient(45deg, var(--hud-secondary), #00ff44); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;" id="stat-positive">---</p>
-          </div>
-          <div class="w-12 h-12 rounded-lg bg-green-400/20 flex items-center justify-center">
-            <i class="fas fa-arrow-trend-up text-xl" style="color: var(--hud-secondary)"></i>
-          </div>
-        </div>
-        <div class="h-1 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"></div>
-      </div>
-      
-      <div class="hud-panel rounded-xl p-6 relative">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-        
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <p class="text-xs font-bold tracking-wider mb-1" style="color: var(--hud-danger)">NEGATIVE.INDEX</p>
-            <p class="metric-display" style="background: linear-gradient(45deg, var(--hud-danger), #ff3366); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;" id="stat-negative">---</p>
-          </div>
-          <div class="w-12 h-12 rounded-lg bg-red-400/20 flex items-center justify-center">
-            <i class="fas fa-arrow-trend-down text-xl" style="color: var(--hud-danger)"></i>
-          </div>
-        </div>
-        <div class="h-1 bg-gradient-to-r from-red-400 to-pink-500 rounded-full"></div>
-      </div>
-      
-      <div class="hud-panel rounded-xl p-6 relative">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-        
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <p class="text-xs font-bold tracking-wider mb-1" style="color: var(--hud-warning)">CRITICAL.ALERTS</p>
-            <p class="metric-display" style="background: linear-gradient(45deg, var(--hud-warning), #ffcc00); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;" id="stat-urgency">---</p>
-          </div>
-          <div class="w-12 h-12 rounded-lg bg-orange-400/20 flex items-center justify-center">
-            <i class="fas fa-exclamation-triangle text-xl" style="color: var(--hud-warning)"></i>
-          </div>
-        </div>
-        <div class="h-1 bg-gradient-to-r from-orange-400 to-yellow-500 rounded-full"></div>
-      </div>
-      
-    </div>
+      </section>
 
-    <!-- HUD Analysis Modules -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-      
-      <div class="hud-panel rounded-xl p-6 relative">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-        
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold tracking-wide" style="color: var(--hud-primary)">SENTIMENT.ANALYSIS</h2>
-          <i class="fas fa-brain" style="color: var(--hud-secondary)"></i>
-        </div>
-        <div class="h-64 relative">
-          <canvas id="chart-sentiment"></canvas>
-        </div>
-      </div>
-      
-      <div class="hud-panel rounded-xl p-6 relative">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-        
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold tracking-wide" style="color: var(--hud-primary)">CATEGORY.MATRIX</h2>
-          <i class="fas fa-project-diagram" style="color: var(--hud-accent)"></i>
-        </div>
-        <div class="h-64 relative">
-          <canvas id="chart-category"></canvas>
-        </div>
-      </div>
-      
-      <div class="hud-panel rounded-xl p-6 relative">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-        
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold tracking-wide" style="color: var(--hud-primary)">SOURCE.DISTRIBUTION</h2>
-          <i class="fas fa-satellite-dish" style="color: var(--hud-warning)"></i>
-        </div>
-        <div class="h-64 relative">
-          <canvas id="chart-source"></canvas>
-        </div>
-      </div>
-      
-    </div>
+      <section class="cards">
+        <article class="card">
+          <span class="metric-icon"><i class="fa-solid fa-database"></i></span>
+          <p class="metric-title">Total Feedback</p>
+          <p class="metric-value" id="stat-total">0</p>
+          <p class="muted">All collected entries</p>
+        </article>
+        <article class="card">
+          <span class="metric-icon"><i class="fa-solid fa-face-smile"></i></span>
+          <p class="metric-title">Positive Sentiment</p>
+          <p class="metric-value" id="stat-positive">0</p>
+          <p class="muted">Current positive mentions</p>
+        </article>
+        <article class="card">
+          <span class="metric-icon"><i class="fa-solid fa-face-frown"></i></span>
+          <p class="metric-title">Negative Sentiment</p>
+          <p class="metric-value" id="stat-negative">0</p>
+          <p class="muted">Needs follow-up</p>
+        </article>
+        <article class="card">
+          <span class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+          <p class="metric-title">High Urgency</p>
+          <p class="metric-value" id="stat-urgency">0</p>
+          <p class="muted">Critical feedback count</p>
+        </article>
+      </section>
 
-    <!-- HUD Live Feed Terminal -->
-    <div class="hud-panel rounded-xl p-6 relative">
-      <div class="hud-corner top-left"></div>
-      <div class="hud-corner top-right"></div>
-      <div class="hud-corner bottom-left"></div>
-      <div class="hud-corner bottom-right"></div>
-      
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold tracking-wide flex items-center gap-3" style="color: var(--hud-primary)">
-          <i class="fas fa-terminal"></i>
-          LIVE.INTELLIGENCE.FEED
-        </h2>
-        <div class="flex items-center gap-3 text-sm">
-          <div class="status-indicator"></div>
-          <span class="font-bold tracking-wide" style="color: var(--hud-text-dim)">REAL-TIME.MONITORING</span>
-        </div>
+      <section class="chart-grid">
+        <article class="panel">
+          <header class="panel-header">
+            <div>
+              <h2 class="panel-title">Sentiment Overview</h2>
+              <p class="panel-sub">Positive vs neutral vs negative</p>
+            </div>
+            <i class="fa-solid fa-chart-pie text-slate-300"></i>
+          </header>
+          <div class="chart-wrap"><canvas id="chart-sentiment"></canvas></div>
+        </article>
+
+        <article class="panel" id="source-panel">
+          <header class="panel-header">
+            <div>
+              <h2 class="panel-title">Source Distribution</h2>
+              <p class="panel-sub">Where feedback is coming from</p>
+            </div>
+            <i class="fa-solid fa-satellite-dish text-slate-300"></i>
+          </header>
+          <div class="chart-wrap"><canvas id="chart-source"></canvas></div>
+        </article>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="panel" id="feed-panel">
+          <header class="panel-header">
+            <div>
+              <h2 class="panel-title">Live Feedback Feed</h2>
+              <p class="panel-sub">Latest incoming feedback with status update</p>
+            </div>
+            <i class="fa-solid fa-wave-square text-slate-300"></i>
+          </header>
+          <div id="feed" class="feed"></div>
+        </article>
+
+        <article class="panel" id="category-panel">
+          <header class="panel-header">
+            <div>
+              <h2 class="panel-title">Category Matrix</h2>
+              <p class="panel-sub">Top recurring themes</p>
+            </div>
+            <i class="fa-solid fa-layer-group text-slate-300"></i>
+          </header>
+          <div class="chart-wrap" style="height:220px;"><canvas id="chart-category"></canvas></div>
+          <div id="source-summary" class="mini-list"></div>
+        </article>
+      </section>
+    </main>
+    </div>
+  </div>
+
+  <div id="settings-overlay" class="settings-overlay">
+    <div class="settings-drawer">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-extrabold m-0">Profile Settings</h3>
+        <button id="close-settings" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      
-      <div id="feed" class="space-y-4 max-h-96 overflow-y-auto">
-        <!-- HUD Feed items will be populated here -->
+      <p class="muted mb-4">Manage account details and UI preferences for this dashboard.</p>
+
+      <div class="form-row">
+        <label for="profile-name">Display name</label>
+        <input id="profile-name" type="text" placeholder="Your name" />
+      </div>
+      <div class="form-row">
+        <label for="profile-email">Email</label>
+        <input id="profile-email" type="email" placeholder="name@company.com" />
+      </div>
+      <div class="form-row">
+        <label for="profile-role">Role</label>
+        <select id="profile-role">
+          <option>User</option>
+          <option>Executive Admin</option>
+          <option>Operations Manager</option>
+          <option>Customer Success</option>
+          <option>Analyst</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="profile-timezone">Timezone</label>
+        <select id="profile-timezone">
+          <option>Africa/Lagos</option>
+          <option>UTC</option>
+          <option>Europe/London</option>
+          <option>America/New_York</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="refresh-interval">Refresh interval (seconds)</label>
+        <select id="refresh-interval">
+          <option value="10">10 seconds</option>
+          <option value="20">20 seconds</option>
+          <option value="30">30 seconds</option>
+          <option value="60">60 seconds</option>
+        </select>
+      </div>
+
+      <div class="flex items-center justify-between py-2">
+        <div>
+          <p class="m-0 text-sm font-bold">Email notifications</p>
+          <p class="m-0 muted">Receive incident summaries by email.</p>
+        </div>
+        <label class="switch">
+          <input id="notif-toggle" type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-actions">
+        <button id="reset-settings" class="btn">Reset</button>
+        <button id="save-settings" class="btn primary">Save settings</button>
       </div>
     </div>
+  </div>
 
-  </main>
+  <div id="toast" class="toast">Saved.</div>
 
   <script>
     const API = 'http://localhost:8000';
-    let sentimentChart, categoryChart, sourceChart;
-
-    // HUD Color Scheme
-    const HUD_COLORS = {
-      primary: '#00ffff',
-      secondary: '#00ff88',
-      accent: '#ff6600',
-      warning: '#ffaa00',
-      danger: '#ff0066'
+    let sentimentChart = null;
+    let sourceChart = null;
+    let categoryChart = null;
+    let refreshTimer = null;
+    let currentUser = null;
+    let latestFeed = [];
+    const filters = {
+      alertsOnly: false,
+      category: 'all',
+      channel: 'all',
+      query: ''
     };
 
-    const SENTIMENT_COLORS = { 
-      Positive: HUD_COLORS.secondary, 
-      Negative: HUD_COLORS.danger, 
-      Neutral: HUD_COLORS.primary 
-    };
-    
-    const URGENCY_CLASSES = { 
-      High: 'urgency-high', 
-      Medium: 'urgency-medium', 
-      Low: 'urgency-low' 
-    };
-    
-    const STATUS_COLORS = { 
-      New: HUD_COLORS.primary, 
-      'In-Progress': HUD_COLORS.warning, 
-      Resolved: HUD_COLORS.secondary 
+    const defaultProfile = {
+      name: 'Felix',
+      email: 'felix@sfao.local',
+      role: 'User',
+      timezone: 'Africa/Lagos',
+      refreshInterval: '10',
+      notifications: true
     };
 
-    const SOCIAL_HUD_ICONS = {
-      Twitter: '<div class="social-hud-icon"><i class="fab fa-twitter"></i></div>',
-      Facebook: '<div class="social-hud-icon"><i class="fab fa-facebook-f"></i></div>',
-      Instagram: '<div class="social-hud-icon"><i class="fab fa-instagram"></i></div>',
-      LinkedIn: '<div class="social-hud-icon"><i class="fab fa-linkedin-in"></i></div>',
-      Reddit: '<div class="social-hud-icon"><i class="fab fa-reddit-alien"></i></div>',
-      Survey: '<div class="social-hud-icon"><i class="fas fa-poll"></i></div>'
+    const PALETTE = {
+      positive: '#44d7b6',
+      neutral: '#ffbe4d',
+      negative: '#ff6b8a',
+      accent: '#54a7ff',
+      purple: '#9c8cff',
+      sky: '#72c1ff',
+      grid: 'rgba(144, 162, 226, 0.18)',
+      label: '#cfdbff'
     };
 
-    function buildHUDChart(id, type, labels, data, colors) {
-      const ctx = document.getElementById(id);
-      return new Chart(ctx, {
-        type: type,
-        data: { 
-          labels, 
-          datasets: [{ 
-            data, 
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function updateFilterSummary(total, visible) {
+      const message = filters.alertsOnly
+        ? `Showing ${visible} of ${total} items (High urgency only)`
+        : `Showing ${visible} of ${total} items`;
+      document.getElementById('filter-summary').textContent = message;
+    }
+
+    function applyFeedFilters(feed) {
+      return (feed || []).filter((item) => {
+        if (filters.alertsOnly && item.urgency !== 'High') return false;
+        if (filters.category !== 'all' && (item.category || '').toLowerCase() !== filters.category) return false;
+        if (filters.channel !== 'all' && (item.source || '').toLowerCase() !== filters.channel) return false;
+
+        if (filters.query) {
+          const haystack = `${item.text || ''} ${item.source || ''} ${item.category || ''}`.toLowerCase();
+          if (!haystack.includes(filters.query)) return false;
+        }
+        return true;
+      });
+    }
+
+    function populateFilterOptions(summary) {
+      const categorySelect = document.getElementById('category-filter');
+      const channelSelect = document.getElementById('channel-filter');
+      const selectedCategory = categorySelect.value;
+      const selectedChannel = channelSelect.value;
+
+      const categories = Object.keys(summary?.categories || {});
+      const channels = Object.keys(summary?.sources || {});
+
+      categorySelect.innerHTML = '<option value="all">All categories</option>' +
+        categories.map((cat) => `<option value="${cat.toLowerCase()}">${cat}</option>`).join('');
+      channelSelect.innerHTML = '<option value="all">All channels</option>' +
+        channels.map((src) => `<option value="${src.toLowerCase()}">${src}</option>`).join('');
+
+      categorySelect.value = categories.map((c) => c.toLowerCase()).includes(selectedCategory) ? selectedCategory : 'all';
+      channelSelect.value = channels.map((s) => s.toLowerCase()).includes(selectedChannel) ? selectedChannel : 'all';
+      filters.category = categorySelect.value;
+      filters.channel = channelSelect.value;
+    }
+
+    function renderFilteredFeed() {
+      const filtered = applyFeedFilters(latestFeed);
+      updateFeed(filtered);
+      updateFilterSummary(latestFeed.length, filtered.length);
+    }
+
+    function getSessionUser() {
+      try {
+        const raw = sessionStorage.getItem('sfao_user');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed?.data || parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    function getStoredTheme() {
+      return localStorage.getItem('sfao.theme') || 'dark';
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const icon = document.getElementById('theme-icon');
+      icon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+      localStorage.setItem('sfao.theme', theme);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    function loadProfileSettings() {
+      try {
+        const raw = localStorage.getItem('sfao.profile');
+        const fromLocal = raw ? JSON.parse(raw) : {};
+        return {
+          ...defaultProfile,
+          ...(currentUser ? {
+            name: currentUser.name || defaultProfile.name,
+            email: currentUser.email || defaultProfile.email,
+            role: currentUser.role || defaultProfile.role,
+          } : {}),
+          ...fromLocal,
+        };
+      } catch {
+        return {
+          ...defaultProfile,
+          ...(currentUser ? {
+            name: currentUser.name || defaultProfile.name,
+            email: currentUser.email || defaultProfile.email,
+            role: currentUser.role || defaultProfile.role,
+          } : {}),
+        };
+      }
+    }
+
+    function applyProfileToUi(profile) {
+      const initials = profile.name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0].toUpperCase())
+        .join('') || 'SF';
+
+      document.getElementById('avatar-initials').textContent = initials;
+      document.getElementById('user-name-display').textContent = profile.name;
+      document.getElementById('profile-menu-name').textContent = profile.name;
+      document.getElementById('profile-menu-role').textContent = profile.role;
+    }
+
+    function fillProfileForm(profile) {
+      document.getElementById('profile-name').value = profile.name;
+      document.getElementById('profile-email').value = profile.email;
+      document.getElementById('profile-role').value = profile.role;
+      document.getElementById('profile-timezone').value = profile.timezone;
+      document.getElementById('refresh-interval').value = profile.refreshInterval;
+      document.getElementById('notif-toggle').checked = !!profile.notifications;
+    }
+
+    function readProfileForm() {
+      return {
+        name: document.getElementById('profile-name').value.trim() || defaultProfile.name,
+        email: currentUser?.email || document.getElementById('profile-email').value.trim() || defaultProfile.email,
+        role: document.getElementById('profile-role').value,
+        timezone: document.getElementById('profile-timezone').value,
+        refreshInterval: document.getElementById('refresh-interval').value,
+        notifications: document.getElementById('notif-toggle').checked
+      };
+    }
+
+    function startAutoRefresh(seconds) {
+      if (refreshTimer) clearInterval(refreshTimer);
+      const intervalMs = Number(seconds || 10) * 1000;
+      refreshTimer = setInterval(refresh, intervalMs);
+    }
+
+    function toggleProfileMenu(forceOpen = null) {
+      const menu = document.getElementById('profile-menu');
+      const shouldOpen = forceOpen === null ? !menu.classList.contains('open') : forceOpen;
+      menu.classList.toggle('open', shouldOpen);
+    }
+
+    function openSettings() {
+      document.getElementById('settings-overlay').classList.add('open');
+      toggleProfileMenu(false);
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-overlay').classList.remove('open');
+    }
+
+    async function fetchBackendSettings(userId) {
+      const response = await fetch(`${API}/users/${userId}/settings`);
+      if (!response.ok) {
+        throw new Error('Failed to load server profile settings');
+      }
+      const settings = await response.json();
+      return {
+        ...loadProfileSettings(),
+        name: settings.name || loadProfileSettings().name,
+        timezone: settings.timezone || 'Africa/Lagos',
+        refreshInterval: String(settings.refresh_interval || 10),
+        notifications: Boolean(settings.notifications_enabled),
+      };
+    }
+
+    async function saveProfileSettings() {
+      const profile = readProfileForm();
+
+      if (currentUser?.id) {
+        try {
+          const response = await fetch(`${API}/users/${currentUser.id}/settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: profile.name,
+              timezone: profile.timezone,
+              refresh_interval: Number(profile.refreshInterval),
+              notifications_enabled: Boolean(profile.notifications),
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Could not save profile settings');
+          }
+        } catch (error) {
+          showToast('Server save failed, saved locally');
+        }
+      }
+
+      localStorage.setItem('sfao.profile', JSON.stringify(profile));
+      applyProfileToUi(profile);
+      startAutoRefresh(profile.refreshInterval);
+      closeSettings();
+      showToast('Profile settings saved');
+    }
+
+    async function resetProfileSettings() {
+      localStorage.removeItem('sfao.profile');
+      const profile = {
+        ...defaultProfile,
+        ...(currentUser ? {
+          name: currentUser.name || defaultProfile.name,
+          email: currentUser.email || defaultProfile.email,
+          role: currentUser.role || defaultProfile.role,
+        } : {}),
+      };
+
+      if (currentUser?.id) {
+        try {
+          await fetch(`${API}/users/${currentUser.id}/settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: profile.name,
+              timezone: profile.timezone,
+              refresh_interval: Number(profile.refreshInterval),
+              notifications_enabled: Boolean(profile.notifications),
+            })
+          });
+        } catch (_) {
+          // Local reset still applies if backend is unavailable.
+        }
+      }
+
+      fillProfileForm(profile);
+      applyProfileToUi(profile);
+      startAutoRefresh(profile.refreshInterval);
+      showToast('Settings reset');
+    }
+
+    function logoutUser() {
+      sessionStorage.removeItem('sfao_user');
+      window.location.href = 'portal.html';
+    }
+
+    async function initUiControls() {
+      applyTheme(getStoredTheme());
+      currentUser = getSessionUser();
+
+      let profile = loadProfileSettings();
+
+      if (currentUser?.id) {
+        try {
+          profile = await fetchBackendSettings(currentUser.id);
+          localStorage.setItem('sfao.profile', JSON.stringify(profile));
+        } catch (_) {
+          // Fallback to local settings if backend settings cannot load.
+        }
+      }
+
+      applyProfileToUi(profile);
+      fillProfileForm(profile);
+      startAutoRefresh(profile.refreshInterval);
+
+      document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+      document.getElementById('profile-trigger').addEventListener('click', () => toggleProfileMenu());
+      document.getElementById('open-profile-settings').addEventListener('click', openSettings);
+      document.getElementById('open-my-profile').addEventListener('click', openSettings);
+      document.getElementById('logout-btn').addEventListener('click', logoutUser);
+      document.getElementById('close-settings').addEventListener('click', closeSettings);
+      document.getElementById('save-settings').addEventListener('click', saveProfileSettings);
+      document.getElementById('reset-settings').addEventListener('click', resetProfileSettings);
+
+      document.addEventListener('click', (event) => {
+        const menu = document.getElementById('profile-menu');
+        const trigger = document.getElementById('profile-trigger');
+        if (!menu.contains(event.target) && !trigger.contains(event.target)) {
+          toggleProfileMenu(false);
+        }
+      });
+
+      document.getElementById('settings-overlay').addEventListener('click', (event) => {
+        if (event.target.id === 'settings-overlay') closeSettings();
+      });
+
+      document.getElementById('search-input').addEventListener('input', (event) => {
+        filters.query = event.target.value.trim().toLowerCase();
+        renderFilteredFeed();
+      });
+
+      document.getElementById('alerts-toggle').addEventListener('click', () => {
+        filters.alertsOnly = !filters.alertsOnly;
+        document.getElementById('alerts-toggle').classList.toggle('primary', filters.alertsOnly);
+        renderFilteredFeed();
+      });
+
+      document.getElementById('category-filter').addEventListener('change', (event) => {
+        filters.category = event.target.value;
+        renderFilteredFeed();
+      });
+
+      document.getElementById('channel-filter').addEventListener('change', (event) => {
+        filters.channel = event.target.value;
+        renderFilteredFeed();
+      });
+
+      document.getElementById('clear-filters').addEventListener('click', () => {
+        filters.alertsOnly = false;
+        filters.category = 'all';
+        filters.channel = 'all';
+        filters.query = '';
+        document.getElementById('search-input').value = '';
+        document.getElementById('category-filter').value = 'all';
+        document.getElementById('channel-filter').value = 'all';
+        document.getElementById('alerts-toggle').classList.remove('primary');
+        renderFilteredFeed();
+      });
+
+      document.getElementById('nav-alerts').addEventListener('click', (event) => {
+        event.preventDefault();
+        filters.alertsOnly = true;
+        document.getElementById('alerts-toggle').classList.add('primary');
+        renderFilteredFeed();
+        document.getElementById('feed-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      document.getElementById('nav-categories').addEventListener('click', (event) => {
+        event.preventDefault();
+        document.getElementById('category-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast('Use Category filter to focus your view');
+      });
+
+      document.getElementById('nav-channels').addEventListener('click', (event) => {
+        event.preventDefault();
+        document.getElementById('source-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast('Use Channel filter to focus your view');
+      });
+    }
+
+    function baseLegend() {
+      return {
+        labels: {
+          color: PALETTE.label,
+          usePointStyle: true,
+          boxWidth: 10,
+          padding: 14,
+          font: {
+            family: 'Plus Jakarta Sans',
+            size: 11,
+            weight: '600'
+          }
+        }
+      };
+    }
+
+    function buildChart(id, type, labels, values, colors) {
+      return new Chart(document.getElementById(id), {
+        type,
+        data: {
+          labels,
+          datasets: [{
+            data: values,
             backgroundColor: colors,
-            borderColor: colors.map(c => c + '88'),
-            borderWidth: 2,
-            borderRadius: type === 'bar' ? 8 : 0
-          }] 
+            borderColor: '#121935',
+            borderWidth: type === 'line' ? 3 : 1,
+            borderRadius: type === 'bar' ? 8 : 0,
+            tension: 0.35
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { 
-            legend: { 
-              position: 'bottom',
-              labels: { 
-                color: HUD_COLORS.primary,
-                font: { size: 11, family: 'Orbitron' },
-                padding: 15,
-                usePointStyle: true
-              } 
-            } 
+          plugins: {
+            legend: type === 'bar' ? { display: false } : baseLegend(),
+            tooltip: {
+              backgroundColor: 'rgba(14,20,42,0.95)',
+              borderColor: 'rgba(84,167,255,0.35)',
+              borderWidth: 1,
+              titleColor: '#fff',
+              bodyColor: '#d5ddff'
+            }
           },
           scales: type === 'bar' ? {
-            x: { 
-              ticks: { color: HUD_COLORS.primary, font: { family: 'Orbitron' } }, 
-              grid: { color: 'rgba(0,255,255,0.1)' } 
+            x: {
+              grid: { color: 'transparent' },
+              ticks: { color: '#b9c5f2', font: { family: 'Plus Jakarta Sans', size: 10 } }
             },
-            y: { 
-              ticks: { color: HUD_COLORS.primary, font: { family: 'Orbitron' } }, 
-              grid: { color: 'rgba(0,255,255,0.1)' } 
+            y: {
+              beginAtZero: true,
+              grid: { color: PALETTE.grid },
+              ticks: { precision: 0, color: '#b9c5f2', font: { family: 'Plus Jakarta Sans', size: 10 } }
             }
           } : {},
-          cutout: type === 'doughnut' ? '70%' : undefined
+          cutout: type === 'doughnut' ? '64%' : undefined
         }
       });
     }
 
-    async function refresh() {
-      try {
-        const [sumRes, feedRes] = await Promise.all([
-          fetch(`${API}/summary`), fetch(`${API}/feed?limit=20`)
-        ]);
-        const summary = await sumRes.json();
-        const feed = await feedRes.json();
+    function sentimentClass(value) {
+      if (value === 'Positive') return 'badge badge-pos';
+      if (value === 'Negative') return 'badge badge-neg';
+      return 'badge badge-neu';
+    }
 
-        // HUD Stats Update
-        document.getElementById('stat-total').textContent = summary.total || '000';
-        document.getElementById('stat-positive').textContent = summary.sentiments?.Positive || '000';
-        document.getElementById('stat-negative').textContent = summary.sentiments?.Negative || '000';
-        document.getElementById('stat-urgency').textContent = summary.urgencies?.High || '000';
-        document.getElementById('last-updated').textContent = 'LAST.UPDATE: ' + new Date().toLocaleTimeString('en-US', { hour12: false });
-
-        // HUD Charts
-        const sLabels = Object.keys(summary.sentiments || {});
-        const sData   = Object.values(summary.sentiments || {});
-        const sColors = sLabels.map(l => SENTIMENT_COLORS[l] || HUD_COLORS.primary);
-
-        const cLabels = Object.keys(summary.categories || {});
-        const cData   = Object.values(summary.categories || {});
-        const cColors = cLabels.map((_, i) => [HUD_COLORS.primary, HUD_COLORS.secondary, HUD_COLORS.accent, HUD_COLORS.warning, HUD_COLORS.danger][i % 5]);
-
-        const srcLabels = Object.keys(summary.sources || {});
-        const srcData   = Object.values(summary.sources || {});
-        const srcColors = srcLabels.map((_, i) => [HUD_COLORS.primary, HUD_COLORS.secondary, HUD_COLORS.accent, HUD_COLORS.warning, HUD_COLORS.danger][i % 5]);
-
-        if (!sentimentChart) {
-          sentimentChart = buildHUDChart('chart-sentiment', 'doughnut', sLabels, sData, sColors);
-          categoryChart  = buildHUDChart('chart-category', 'bar', cLabels, cData, cColors);
-          sourceChart    = buildHUDChart('chart-source', 'doughnut', srcLabels, srcData, srcColors);
-        } else {
-          sentimentChart.data.labels = sLabels;
-          sentimentChart.data.datasets[0].data = sData;
-          sentimentChart.data.datasets[0].backgroundColor = sColors;
-          sentimentChart.update();
-
-          categoryChart.data.labels = cLabels;
-          categoryChart.data.datasets[0].data = cData;
-          categoryChart.data.datasets[0].backgroundColor = cColors;
-          categoryChart.update();
-
-          sourceChart.data.labels = srcLabels;
-          sourceChart.data.datasets[0].data = srcData;
-          sourceChart.data.datasets[0].backgroundColor = srcColors;
-          sourceChart.update();
-        }
-
-        // HUD Terminal Feed
-        const feedEl = document.getElementById('feed');
-        feedEl.innerHTML = feed.length ? feed.map(item => `
-          <div class="hud-feed-item ${URGENCY_CLASSES[item.urgency] || 'urgency-low'} rounded-lg p-4 transition-all duration-300">
-            <div class="flex items-start gap-4">
-              <div class="flex flex-col items-center gap-2 shrink-0">
-                ${SOCIAL_HUD_ICONS[item.source] || '<div class="social-hud-icon"><i class="fas fa-comment"></i></div>'}
-                <span class="text-xs px-2 py-1 rounded font-bold tracking-wide" style="background: ${SENTIMENT_COLORS[item.sentiment]}22; color: ${SENTIMENT_COLORS[item.sentiment]}; border: 1px solid ${SENTIMENT_COLORS[item.sentiment]}">
-                  ${item.urgency.toUpperCase()}
-                </span>
-              </div>
-              
-              <div class="flex-1 min-w-0">
-                <div class="flex items-start justify-between gap-3 mb-3">
-                  <p class="text-sm leading-relaxed font-mono" style="color: var(--hud-text)">${item.text}</p>
-                  <select onchange="updateStatus(${item.id}, this.value)"
-                    class="text-xs hud-panel border rounded px-2 py-1 font-bold shrink-0 cursor-pointer transition-all" style="color: var(--hud-primary);">
-                    <option ${item.status==='New'?'selected':''}>New</option>
-                    <option ${item.status==='In-Progress'?'selected':''}>In-Progress</option>
-                    <option ${item.status==='Resolved'?'selected':''}>Resolved</option>
-                  </select>
-                </div>
-                
-                <div class="flex items-center gap-4 text-xs">
-                  <span class="flex items-center gap-1 px-2 py-1 rounded font-bold" style="background: ${HUD_COLORS.primary}22; color: ${HUD_COLORS.primary};">
-                    <i class="fas fa-tags"></i>
-                    ${item.category.toUpperCase()}
-                  </span>
-                  <span class="flex items-center gap-1 px-2 py-1 rounded font-bold" style="background: ${SENTIMENT_COLORS[item.sentiment]}22; color: ${SENTIMENT_COLORS[item.sentiment]};">
-                    <i class="fas ${item.sentiment === 'Positive' ? 'fa-arrow-up' : item.sentiment === 'Negative' ? 'fa-arrow-down' : 'fa-arrows-alt-h'}"></i>
-                    ${item.sentiment.toUpperCase()}
-                  </span>
-                  <span class="flex items-center gap-1 px-2 py-1 rounded font-bold" style="background: ${STATUS_COLORS[item.status]}22; color: ${STATUS_COLORS[item.status]};">
-                    <i class="fas ${item.status === 'New' ? 'fa-plus' : item.status === 'In-Progress' ? 'fa-cog fa-spin' : 'fa-check'}"></i>
-                    ${item.status.toUpperCase()}
-                  </span>
-                  <span class="flex items-center gap-1 ml-auto text-xs font-mono" style="color: var(--hud-text-dim)">
-                    <i class="fas fa-clock"></i>
-                    ${new Date(item.created_at || Date.now()).toLocaleTimeString('en-US', { hour12: false })}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        `).join('') : `
-          <div class="text-center py-12 hud-panel rounded-lg">
-            <i class="fas fa-satellite-dish text-4xl mb-4" style="color: var(--hud-text-dim)"></i>
-            <p class="font-bold tracking-wide" style="color: var(--hud-text-dim)">NO.SIGNALS.DETECTED</p>
-            <p class="text-xs mt-1 font-mono" style="color: var(--hud-text-dim)">EXECUTE SIMULATOR.PY TO GENERATE TEST DATA</p>
-          </div>
-        `;
-
-      } catch (e) {
-        document.getElementById('last-updated').textContent = 'SYSTEM.OFFLINE - START BACKEND FIRST';
-        document.getElementById('feed').innerHTML = `
-          <div class="text-center py-12 hud-panel rounded-lg">
-            <i class="fas fa-exclamation-triangle text-4xl mb-4" style="color: var(--hud-danger)"></i>
-            <p class="font-bold tracking-wide" style="color: var(--hud-danger)">CONNECTION.FAILED</p>
-            <p class="text-xs mt-1 font-mono" style="color: var(--hud-text-dim)">BACKEND SERVER NOT RESPONDING ON PORT 8000</p>
-          </div>
-        `;
-      }
+    function urgencyClass(value) {
+      if (value === 'High') return 'urgency-high';
+      if (value === 'Medium') return 'urgency-medium';
+      return 'urgency-low';
     }
 
     async function updateStatus(id, status) {
+      const payload = {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      };
+
       try {
-        await fetch(`${API}/feedback/${id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status })
-        });
-        // Refresh to show updated status
-        setTimeout(refresh, 500);
-      } catch (e) {
-        console.error('STATUS.UPDATE.FAILED:', e);
+        const patchResp = await fetch(`${API}/feedback/${id}/status`, payload);
+        if (!patchResp.ok) {
+          await fetch(`${API}/feedback/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          });
+        }
+        setTimeout(refresh, 350);
+      } catch (err) {
+        console.error('Failed to update status:', err);
       }
     }
 
-    // Initialize HUD System
-    refresh();
-    setInterval(refresh, 10000);
+    function updateCards(summary) {
+      document.getElementById('stat-total').textContent = summary.total || 0;
+      document.getElementById('stat-positive').textContent = summary.sentiments?.Positive || 0;
+      document.getElementById('stat-negative').textContent = summary.sentiments?.Negative || 0;
+      document.getElementById('stat-urgency').textContent = summary.urgencies?.High || 0;
+      document.getElementById('last-updated').textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+    }
+
+    function updateVisuals(summary) {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const chartLabelColor = theme === 'dark' ? '#cfdbff' : '#40538d';
+      const chartGrid = theme === 'dark' ? 'rgba(144, 162, 226, 0.18)' : 'rgba(100, 125, 190, 0.2)';
+
+      const sentimentLabels = Object.keys(summary.sentiments || {});
+      const sentimentValues = Object.values(summary.sentiments || {});
+      const sentimentColors = sentimentLabels.map((s) => {
+        if (s === 'Positive') return PALETTE.positive;
+        if (s === 'Negative') return PALETTE.negative;
+        return PALETTE.neutral;
+      });
+
+      const sourceLabels = Object.keys(summary.sources || {});
+      const sourceValues = Object.values(summary.sources || {});
+      const sourceColors = sourceLabels.map((_, i) => [PALETTE.accent, PALETTE.positive, PALETTE.purple, PALETTE.sky, PALETTE.neutral][i % 5]);
+
+      const categoryLabels = Object.keys(summary.categories || {});
+      const categoryValues = Object.values(summary.categories || {});
+      const categoryColors = categoryLabels.map((_, i) => [PALETTE.sky, PALETTE.accent, PALETTE.positive, PALETTE.purple, PALETTE.neutral][i % 5]);
+
+      if (!sentimentChart) {
+        sentimentChart = buildChart('chart-sentiment', 'doughnut', sentimentLabels, sentimentValues, sentimentColors);
+      } else {
+        sentimentChart.data.labels = sentimentLabels;
+        sentimentChart.data.datasets[0].data = sentimentValues;
+        sentimentChart.data.datasets[0].backgroundColor = sentimentColors;
+        sentimentChart.update();
+      }
+
+      if (!sourceChart) {
+        sourceChart = buildChart('chart-source', 'doughnut', sourceLabels, sourceValues, sourceColors);
+      } else {
+        sourceChart.data.labels = sourceLabels;
+        sourceChart.data.datasets[0].data = sourceValues;
+        sourceChart.data.datasets[0].backgroundColor = sourceColors;
+        sourceChart.update();
+      }
+
+      if (!categoryChart) {
+        categoryChart = buildChart('chart-category', 'bar', categoryLabels, categoryValues, categoryColors);
+      } else {
+        categoryChart.data.labels = categoryLabels;
+        categoryChart.data.datasets[0].data = categoryValues;
+        categoryChart.data.datasets[0].backgroundColor = categoryColors;
+        categoryChart.update();
+      }
+
+      if (sentimentChart.options.plugins.legend && sentimentChart.options.plugins.legend.labels) {
+        sentimentChart.options.plugins.legend.labels.color = chartLabelColor;
+      }
+      if (sourceChart.options.plugins.legend && sourceChart.options.plugins.legend.labels) {
+        sourceChart.options.plugins.legend.labels.color = chartLabelColor;
+      }
+      categoryChart.options.scales.y.grid.color = chartGrid;
+      categoryChart.options.scales.y.ticks.color = chartLabelColor;
+      categoryChart.options.scales.x.ticks.color = chartLabelColor;
+      categoryChart.update();
+
+      const sourceSummary = document.getElementById('source-summary');
+      sourceSummary.innerHTML = sourceLabels.length
+        ? sourceLabels.map((name, i) => `
+            <div class="mini-item">
+              <span><i class="fa-solid fa-circle-dot mr-1" style="color:${sourceColors[i]}"></i>${name}</span>
+              <strong>${sourceValues[i]}</strong>
+            </div>
+          `).join('')
+        : '<p class="muted">No source data available.</p>';
+    }
+
+    function updateFeed(feed) {
+      const container = document.getElementById('feed');
+
+      if (!feed || !feed.length) {
+        container.innerHTML = '<p class="muted" style="padding:0.8rem;">No live feedback yet. Run the simulator to populate data.</p>';
+        return;
+      }
+
+      container.innerHTML = feed.slice(0, 15).map((item) => `
+        <div class="feed-item ${urgencyClass(item.urgency)}">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="${sentimentClass(item.sentiment)}">${item.sentiment}</span>
+                <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1);">${item.source}</span>
+                <span class="muted">${new Date(item.created_at || Date.now()).toLocaleString()}</span>
+              </div>
+              <p class="text-sm leading-6" style="margin:0; color:var(--text);">${item.text || ''}</p>
+              <div class="flex gap-2 mt-2">
+                <span class="badge" style="color:#d8e3ff; border-color:rgba(124,142,214,0.35); background:rgba(17,23,48,0.7);">${item.category || 'General'}</span>
+                <span class="badge" style="color:#ffcfd9; border-color:rgba(255,107,138,0.34); background:rgba(255,107,138,0.1);">${item.urgency || 'Low'}</span>
+              </div>
+            </div>
+            <select class="status-select" onchange="updateStatus(${item.id}, this.value)">
+              <option ${item.status === 'New' ? 'selected' : ''}>New</option>
+              <option ${item.status === 'In-Progress' ? 'selected' : ''}>In-Progress</option>
+              <option ${item.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+            </select>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function refresh() {
+      try {
+        const [summaryRes, feedRes] = await Promise.all([
+          fetch(`${API}/summary`),
+          fetch(`${API}/feed?limit=20`)
+        ]);
+
+        if (!summaryRes.ok || !feedRes.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const summary = await summaryRes.json();
+        const feed = await feedRes.json();
+        latestFeed = feed || [];
+
+        updateCards(summary);
+        updateVisuals(summary);
+        populateFilterOptions(summary);
+        renderFilteredFeed();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('last-updated').textContent = 'Last update: backend offline';
+        document.getElementById('feed').innerHTML = '<p class="muted" style="padding:0.8rem; color:#ffb3c5;">Could not reach API on localhost:8000.</p>';
+      }
+    }
+
+    initUiControls().then(refresh);
   </script>
 </body>
 </html>

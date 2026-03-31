@@ -63,8 +63,13 @@ def post(source, text):
     )
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode())
-            print(f"[{source}] {data['sentiment']:8s} | {data['category']:10s} | {data['urgency']:6s} | {text[:60]}")
+            response = json.loads(resp.read().decode())
+            if response.get('success'):
+                data = response['data']
+                print(f"[{source}] {data['sentiment']:8s} | {data['category']:10s} | {data['urgency']:6s} | {text[:60]}")
+            else:
+                print(f"[ERROR] API returned error: {response.get('message', 'Unknown error')}")
+                return False
     except urllib.error.URLError as e:
         print(f"[ERROR] Cannot reach API: {e.reason}. Is the backend running?")
         return False

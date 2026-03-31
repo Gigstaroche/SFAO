@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-8">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ table_name | title }} Table</h2>
+            <p class="text-gray-600">Showing {{ data | length }} of {{ total }} records</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <a href="/" class="inline-flex items-center px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Table Info Card -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Table Structure</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+            <p class="text-sm font-medium text-gray-600">Total Records</p>
+            <p class="text-2xl font-bold text-blue-600">{{ total }}</p>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-600">Columns</p>
+            <p class="text-2xl font-bold text-green-600">{{ table_info.columns | length }}</p>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-600">Indexes</p>
+            <p class="text-2xl font-bold text-purple-600">{{ table_info.indexes | length }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Column Details -->
+<div class="bg-white rounded-lg shadow-md mb-6 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Column Information</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Column</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nullable</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Default</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for column in table_info.columns %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            {% if column.primary_key %}
+                            <i class="fas fa-key text-yellow-500 mr-2" title="Primary Key"></i>
+                            {% endif %}
+                            <span class="text-sm font-medium text-gray-900">{{ column.name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {{ column.type }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if column.nullable %}
+                            <i class="fas fa-check text-green-500" title="Nullable"></i>
+                        {% else %}
+                            <i class="fas fa-times text-red-500" title="Not Nullable"></i>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ column.default if column.default else '-' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Table Data</h3>
+            <div class="flex items-center space-x-2">
+                <button onclick="exportData()" class="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                    <i class="fas fa-download mr-2"></i>
+                    Export
+                </button>
+                <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    <i class="fas fa-sync mr-2"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    {% if data %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    {% for column in table_info.columns %}
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {{ column.name }}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for row in data %}
+                <tr class="hover:bg-gray-50">
+                    {% for column in table_info.columns %}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {% set value = row.get(column.name, '') %}
+                        {% if value is none %}
+                            <span class="text-gray-400 italic">NULL</span>
+                        {% elif column.type | string | lower in ['datetime', 'timestamp'] %}
+                            <span title="{{ value }}">{{ value[:19] if value | length > 19 else value }}</span>
+                        {% elif value | string | length > 50 %}
+                            <span title="{{ value }}">{{ value[:47] }}...</span>
+                        {% else %}
+                            {{ value }}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="px-6 py-12 text-center">
+        <i class="fas fa-database text-gray-400 text-4xl mb-4"></i>
+        <p class="text-gray-500 text-lg">No data found in this table</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if total > limit %}
+<div class="mt-6 flex items-center justify-between">
+    <div class="text-sm text-gray-700">
+        Showing {{ (page - 1) * limit + 1 }} to {{ [page * limit, total] | min }} of {{ total }} results
+    </div>
+    <div class="flex items-center space-x-2">
+        {% if has_prev %}
+        <a href="/table/{{ table_name }}?page={{ page - 1 }}&limit={{ limit }}" 
+           class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-50">
+            <i class="fas fa-chevron-left mr-1"></i>Previous
+        </a>
+        {% endif %}
+        
+        <span class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium">
+            Page {{ page }} of {{ total_pages }}
+        </span>
+        
+        {% if has_next %}
+        <a href="/table/{{ table_name }}?page={{ page + 1 }}&limit={{ limit }}" 
+           class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-50">
+            Next<i class="fas fa-chevron-right ml-1"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+function refreshData() {
+    location.reload();
+}
+
+function exportData() {
+    // Convert table data to CSV
+    const table = document.querySelector('table');
+    const rows = Array.from(table.querySelectorAll('tr'));
+    
+    const csv = rows.map(row => {
+        const cells = Array.from(row.querySelectorAll('th, td'));
+        return cells.map(cell => {
+            const text = cell.textContent.trim();
+            return text.includes(',') ? `"${text}"` : text;
+        }).join(',');
+    }).join('\n');
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '{{ table_name }}_data.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    showNotification('Data exported successfully!', 'success');
+}
+</script>
+{% endblock %}

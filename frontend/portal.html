@@ -144,10 +144,11 @@
         });
         const data = await res.json();
         if (res.ok) {
-          sessionStorage.setItem('sfao_user', JSON.stringify(data));
-          showPortal(data);
+          const user = data?.data || data;
+          sessionStorage.setItem('sfao_user', JSON.stringify(user));
+          showPortal(user);
         } else {
-          showError('login-error', data.detail);
+          showError('login-error', data.detail || data.message || 'Login failed');
         }
       } catch {
         showError('login-error', 'Cannot reach server. Start the backend first.');
@@ -170,7 +171,7 @@
           showMsg('reg-message', '✓ Account created! Please login.', 'success');
           setTimeout(() => switchTab('login'), 1500);
         } else {
-          showMsg('reg-message', data.detail, 'error');
+          showMsg('reg-message', data.detail || data.message || 'Registration failed', 'error');
         }
       } catch {
         showMsg('reg-message', 'Cannot reach server.', 'error');
@@ -191,11 +192,12 @@
     }
 
     async function showPortal(user) {
+      const currentUser = user?.data || user;
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('portal-screen').classList.remove('hidden');
-      document.getElementById('user-name').textContent   = user.name;
-      document.getElementById('portal-name').textContent = user.name;
-      document.getElementById('user-role-badge').textContent = user.role === 'admin' ? '🛡 Admin' : '👤 User';
+      document.getElementById('user-name').textContent   = currentUser.name;
+      document.getElementById('portal-name').textContent = currentUser.name;
+      document.getElementById('user-role-badge').textContent = (currentUser.role || '').toLowerCase() === 'admin' ? '🛡 Admin' : '👤 User';
 
       try {
         const [sumRes, feedRes] = await Promise.all([

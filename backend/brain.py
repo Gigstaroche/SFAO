@@ -63,7 +63,7 @@ def get_urgency(text: str) -> str:
     return "Low"
 
 
-def analyze(text: str, source: str) -> dict:
+def analyze(text: str, source: str = "Unknown") -> dict:
     """Full analysis pipeline: clean → sentiment → category → urgency."""
     cleaned = clean_text(text)
     sentiment, score = get_sentiment(cleaned)
@@ -71,8 +71,6 @@ def analyze(text: str, source: str) -> dict:
     urgency = get_urgency(cleaned)
 
     return {
-        "source":    source,
-        "text":      cleaned,
         "sentiment": sentiment,
         "score":     score,
         "category":  category,

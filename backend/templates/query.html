@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-3xl font-bold text-gray-900 mb-4">SQL Query Interface</h2>
+    <p class="text-gray-600 mb-6">Execute custom SQL queries against your SFAO database.</p>
+</div>
+
+<!-- Query Builder -->
+<div class="bg-white rounded-lg shadow-md mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Query Builder</h3>
+    </div>
+    <div class="p-6">
+        <div class="mb-4">
+            <label for="queryInput" class="block text-sm font-medium text-gray-700 mb-2">SQL Query</label>
+            <textarea id="queryInput" rows="8" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                      placeholder="SELECT * FROM feedback ORDER BY created_at DESC LIMIT 10;"></textarea>
+        </div>
+        
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <button onclick="executeQuery()" 
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-play mr-2"></i>
+                    Execute Query
+                </button>
+                <button onclick="clearQuery()" 
+                        class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-trash mr-2"></i>
+                    Clear
+                </button>
+            </div>
+            <div class="text-sm text-gray-500">
+                <i class="fas fa-info-circle mr-1"></i>
+                Use semicolon to separate multiple queries
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Queries -->
+<div class="bg-white rounded-lg shadow-md mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Quick Queries</h3>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <h4 class="font-medium text-gray-900">Feedback Queries</h4>
+                <div class="space-y-1">
+                    <button onclick="loadQuery('SELECT * FROM feedback ORDER BY created_at DESC LIMIT 20;')" 
+                            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border">
+                        Recent Feedback (20)
+                    </button>
+                    <button onclick="loadQuery('SELECT sentiment, COUNT(*) as count FROM feedback GROUP BY sentiment;')" 
+                            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border">
+                        Sentiment Distribution
+                    </button>
+                    <button onclick="loadQuery('SELECT category, COUNT(*) as count FROM feedback GROUP BY category ORDER BY count DESC;')" 
+                            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border">
+                        Category Distribution
+                    </button>
+                    <button onclick="loadQuery('SELECT * FROM feedback WHERE urgency = \"High\" ORDER BY created_at DESC;')" 
+                            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border">
+                        High Urgency Items
+                    </button>
+                </div>
+            </div>
+            
+            <div class="space-y-2">
+                <h4 class="font-medium text-gray-900">Analytics Queries</h4>
+                <div class="space-y-1">
+                    <button onclick="loadQuery('SELECT DATE(created_at) as date, COUNT(*) as daily_count FROM feedback GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 7;')" 
+                            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border">
+                        Daily Feedback Count
+                    </button>
+                    <button onclick="loadQuery('SELECT source, AVG(score) as avg_score FROM feedback GROUP BY source;')" 
+                            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border">
+                        Average Score by Source
+                    </button>
+                    <button onclick="loadQuery('SELECT status, COUNT(*) as count FROM feedback GROUP BY status;')" 
+                            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border">
+                        Status Distribution
+                    </button>
+                    <button onclick="loadQuery('SELECT u.name, COUNT(f.id) as feedback_count FROM users u LEFT JOIN feedback f ON u.email LIKE \"%\" || f.source || \"%\" GROUP BY u.id ORDER BY feedback_count DESC;')" 
+                            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border">
+                        User Activity
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results -->
+<div id="resultsContainer" class="bg-white rounded-lg shadow-md" style="display: none;">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Query Results</h3>
+            <div class="flex items-center space-x-2">
+                <span id="resultStats" class="text-sm text-gray-500"></span>
+                <button onclick="exportResults()" 
+                        class="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    <i class="fas fa-download mr-2"></i>
+                    Export
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="resultsContent" class="p-6">
+        <!-- Results will be populated here -->
+    </div>
+</div>
+
+<!-- Error Display -->
+<div id="errorContainer" class="bg-red-50 border border-red-200 rounded-lg p-4 mt-6" style="display: none;">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle text-red-400"></i>
+        </div>
+        <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">Query Error</h3>
+            <div id="errorMessage" class="mt-2 text-sm text-red-700"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let lastResults = [];
+
+function loadQuery(query) {
+    document.getElementById('queryInput').value = query;
+}
+
+function clearQuery() {
+    document.getElementById('queryInput').value = '';
+    hideResults();
+    hideError();
+}
+
+function hideResults() {
+    document.getElementById('resultsContainer').style.display = 'none';
+}
+
+function hideError() {
+    document.getElementById('errorContainer').style.display = 'none';
+}
+
+function showError(message) {
+    document.getElementById('errorMessage').textContent = message;
+    document.getElementById('errorContainer').style.display = 'block';
+    hideResults();
+}
+
+function showResults(data) {
+    lastResults = data;
+    
+    if (data.length === 0) {
+        document.getElementById('resultsContent').innerHTML = `
+            <div class="text-center py-12">
+                <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
+                <p class="text-gray-500 text-lg">No results found</p>
+            </div>
+        `;
+    } else {
+        // Create table
+        const columns = Object.keys(data[0]);
+        const tableHTML = `
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            ${columns.map(col => `
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ${col}
+                                </th>
+                            `).join('')}
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        ${data.map(row => `
+                            <tr class="hover:bg-gray-50">
+                                ${columns.map(col => `
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        ${row[col] !== null && row[col] !== undefined ? row[col] : '<span class="text-gray-400 italic">NULL</span>'}
+                                    </td>
+                                `).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        document.getElementById('resultsContent').innerHTML = tableHTML;
+    }
+    
+    // Update stats
+    document.getElementById('resultStats').textContent = `${data.length} row${data.length !== 1 ? 's' : ''} returned`;
+    
+    // Show results container
+    document.getElementById('resultsContainer').style.display = 'block';
+    hideError();
+}
+
+async function executeQuery() {
+    const query = document.getElementById('queryInput').value.trim();
+    
+    if (!query) {
+        showError('Please enter a SQL query');
+        return;
+    }
+    
+    try {
+        // Show loading state
+        showNotification('Executing query...', 'info');
+        
+        const response = await fetch('/api/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query: query })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showResults(result.data);
+            showNotification('Query executed successfully!', 'success');
+        } else {
+            showError(result.error);
+        }
+        
+    } catch (error) {
+        showError('Failed to execute query: ' + error.message);
+    }
+}
+
+function exportResults() {
+    if (lastResults.length === 0) {
+        showNotification('No data to export', 'error');
+        return;
+    }
+    
+    // Convert to CSV
+    const columns = Object.keys(lastResults[0]);
+    const csv = [
+        columns.join(','),
+        ...lastResults.map(row => 
+            columns.map(col => {
+                const value = row[col];
+                const stringValue = value !== null && value !== undefined ? String(value) : '';
+                return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
+            }).join(',')
+        )
+    ].join('\n');
+    
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'query_results.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    showNotification('Results exported successfully!', 'success');
+}
+
+// Enable Ctrl+Enter to execute query
+document.getElementById('queryInput').addEventListener('keydown', function(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        executeQuery();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-3xl font-bold text-gray-900 mb-4">SFAO Analytics Dashboard</h2>
+    <p class="text-gray-600 mb-6">Comprehensive insights and visualizations from your feedback data.</p>
+</div>
+
+<!-- Analytics Cards -->
+<div id="analyticsCards" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <!-- Cards will be populated by JavaScript -->
+</div>
+
+<!-- Charts Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Sentiment Distribution -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Sentiment Distribution</h3>
+        <canvas id="sentimentChart" width="400" height="200"></canvas>
+    </div>
+    
+    <!-- Category Distribution -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Category Breakdown</h3>
+        <canvas id="categoryChart" width="400" height="200"></canvas>
+    </div>
+    
+    <!-- Monthly Trends -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Monthly Feedback Trends</h3>
+        <canvas id="trendsChart" width="400" height="200"></canvas>
+    </div>
+    
+    <!-- Source Distribution -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Feedback Sources</h3>
+        <canvas id="sourceChart" width="400" height="200"></canvas>
+    </div>
+</div>
+
+<!-- Urgency Analysis -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Urgency Analysis</h3>
+    <div id="urgencyGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Urgency cards will be populated by JavaScript -->
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Data Summary</h3>
+    <div id="dataSummary" class="overflow-x-auto">
+        <!-- Summary will be populated by JavaScript -->
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="loadingState" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-sm mx-4">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading analytics data...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let analyticsData = null;
+let charts = {};
+
+// Initialize analytics dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    loadAnalyticsData();
+});
+
+async function loadAnalyticsData() {
+    try {
+        const response = await fetch('/api/feedback/analytics');
+        analyticsData = await response.json();
+        
+        // Hide loading state
+        document.getElementById('loadingState').style.display = 'none';
+        
+        // Render all components
+        renderAnalyticsCards();
+        renderCharts();
+        renderUrgencyAnalysis();
+        renderDataSummary();
+        
+    } catch (error) {
+        console.error('Failed to load analytics data:', error);
+        document.getElementById('loadingState').innerHTML = `
+            <div class="bg-white rounded-lg p-8 max-w-sm mx-4">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                    <p class="text-gray-600">Failed to load analytics data</p>
+                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Retry
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function renderAnalyticsCards() {
+    const cards = document.getElementById('analyticsCards');
+    
+    // Calculate additional metrics
+    const avgScore = analyticsData.total_feedback > 0 ? 
+        Object.entries(analyticsData.sentiments).reduce((acc, [sentiment, count]) => {
+            const scoreMap = { 'Positive': 4, 'Neutral': 2.5, 'Negative': 1 };
+            return acc + (scoreMap[sentiment] || 2.5) * count;
+        }, 0) / analyticsData.total_feedback : 0;
+    
+    const responseTime = '2.3'; // Mock data - you'd calculate this from actual data
+    const resolutionRate = analyticsData.total_feedback > 0 ? 
+        Math.round(Math.random() * 30 + 70) : 0; // Mock data
+    
+    cards.innerHTML = `
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-white bg-opacity-20">
+                    <i class="fas fa-comments text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-blue-100 text-sm">Total Feedback</p>
+                    <p class="text-3xl font-bold">${analyticsData.total_feedback}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-md p-6 text-white">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-white bg-opacity-20">
+                    <i class="fas fa-star text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-green-100 text-sm">Average Score</p>
+                    <p class="text-3xl font-bold">${avgScore.toFixed(1)}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-white bg-opacity-20">
+                    <i class="fas fa-clock text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-purple-100 text-sm">Avg Response Time</p>
+                    <p class="text-3xl font-bold">${responseTime}h</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-md p-6 text-white">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-white bg-opacity-20">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-orange-100 text-sm">Resolution Rate</p>
+                    <p class="text-3xl font-bold">${resolutionRate}%</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderCharts() {
+    // Sentiment Distribution Chart
+    const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+    charts.sentiment = new Chart(sentimentCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(analyticsData.sentiments),
+            datasets: [{
+                data: Object.values(analyticsData.sentiments),
+                backgroundColor: [
+                    '#10B981', // Green for Positive
+                    '#6B7280', // Gray for Neutral  
+                    '#EF4444'  // Red for Negative
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Category Distribution Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    charts.category = new Chart(categoryCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(analyticsData.categories),
+            datasets: [{
+                label: 'Count',
+                data: Object.values(analyticsData.categories),
+                backgroundColor: '#3B82F6'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Monthly Trends Chart
+    const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+    const monthlyData = analyticsData.monthly_trends;
+    const sortedMonths = Object.keys(monthlyData).sort();
+    
+    charts.trends = new Chart(trendsCtx, {
+        type: 'line',
+        data: {
+            labels: sortedMonths,
+            datasets: [
+                {
+                    label: 'Total',
+                    data: sortedMonths.map(month => monthlyData[month].total),
+                    borderColor: '#3B82F6',
+                    backgroundColor: '#3B82F620',
+                    tension: 0.4
+                },
+                {
+                    label: 'Positive',
+                    data: sortedMonths.map(month => monthlyData[month].positive),
+                    borderColor: '#10B981',
+                    backgroundColor: '#10B98120',
+                    tension: 0.4
+                },
+                {
+                    label: 'Negative',
+                    data: sortedMonths.map(month => monthlyData[month].negative),
+                    borderColor: '#EF4444',
+                    backgroundColor: '#EF444420',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Source Distribution Chart
+    const sourceCtx = document.getElementById('sourceChart').getContext('2d');
+    charts.source = new Chart(sourceCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(analyticsData.sources),
+            datasets: [{
+                data: Object.values(analyticsData.sources),
+                backgroundColor: [
+                    '#8B5CF6',
+                    '#06B6D4',
+                    '#84CC16',
+                    '#F59E0B',
+                    '#EF4444'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function renderUrgencyAnalysis() {
+    const urgencyGrid = document.getElementById('urgencyGrid');
+    const urgencyColors = {
+        'Low': 'bg-green-100 text-green-800',
+        'Medium': 'bg-yellow-100 text-yellow-800',
+        'High': 'bg-red-100 text-red-800'
+    };
+    
+    urgencyGrid.innerHTML = Object.entries(analyticsData.urgencies).map(([level, count]) => `
+        <div class="bg-white border rounded-lg p-4 text-center">
+            <div class="mb-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${urgencyColors[level] || 'bg-gray-100 text-gray-800'}">
+                    ${level}
+                </span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">${count}</div>
+            <div class="text-sm text-gray-500">
+                ${((count / analyticsData.total_feedback) * 100).toFixed(1)}%
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderDataSummary() {
+    const summary = document.getElementById('dataSummary');
+    summary.innerHTML = `
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total Feedback</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${analyticsData.total_feedback}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Total number of feedback entries in the system</td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Sentiment Categories</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${Object.keys(analyticsData.sentiments).length}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Number of different sentiment classifications</td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Feedback Categories</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${Object.keys(analyticsData.categories).length}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Number of different feedback categories</td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Data Sources</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${Object.keys(analyticsData.sources).length}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Number of different feedback sources</td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Monthly Data Points</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${Object.keys(analyticsData.monthly_trends).length}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Number of months with feedback data</td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+}
+
+// Refresh data periodically
+setInterval(loadAnalyticsData, 30000); // Refresh every 30 seconds
+</script>
+{% endblock %}

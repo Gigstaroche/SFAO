@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-3xl font-bold text-gray-900 mb-4">Database Overview</h2>
+    <p class="text-gray-600 mb-6">Manage and explore your SFAO database tables with advanced visualization tools.</p>
+</div>
+
+<!-- Database Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    {% set total_records = tables.values() | sum(attribute='count') %}
+    <div class="bg-white rounded-lg shadow-md p-6 card-hover transition-all duration-200">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                <i class="fas fa-table text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600">Total Tables</p>
+                <p class="text-2xl font-bold text-gray-900">{{ tables | length }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-md p-6 card-hover transition-all duration-200">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                <i class="fas fa-database text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600">Total Records</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_records }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-md p-6 card-hover transition-all duration-200">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                <i class="fas fa-chart-bar text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600">Database Engine</p>
+                <p class="text-lg font-bold text-gray-900">SQLite</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tables Grid -->
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Database Tables</h3>
+        <p class="text-sm text-gray-600">Click on any table to explore its data</p>
+    </div>
+    
+    <div class="divide-y divide-gray-200">
+        {% for table_name, table_data in tables.items() %}
+        <div class="p-6 table-row transition-colors duration-150 cursor-pointer" 
+             onclick="window.location.href='/table/{{ table_name }}'">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="p-2 bg-gray-100 rounded-lg">
+                        <i class="fas fa-table text-gray-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-900">{{ table_name }}</h4>
+                        <div class="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                            <span>
+                                <i class="fas fa-list-ol mr-1"></i>
+                                {{ table_data.info.columns | length }} columns
+                            </span>
+                            <span>
+                                <i class="fas fa-database mr-1"></i>
+                                {{ table_data.count }} records
+                            </span>
+                            {% if table_data.info.indexes %}
+                            <span>
+                                <i class="fas fa-search mr-1"></i>
+                                {{ table_data.info.indexes | length }} indexes
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <div class="text-2xl font-bold text-blue-600">
+                        {{ table_data.count }}
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </div>
+            </div>
+            
+            <!-- Column Preview -->
+            <div class="mt-4 flex flex-wrap gap-2">
+                {% for column in table_data.info.columns[:5] %}
+                <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
+                    {{ column.name }}
+                    <span class="text-gray-500">({{ column.type }})</span>
+                </span>
+                {% endfor %}
+                {% if table_data.info.columns | length > 5 %}
+                <span class="px-3 py-1 bg-gray-50 rounded-full text-xs text-gray-500">
+                    +{{ table_data.info.columns | length - 5 }} more
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow-md p-6 card-hover transition-all duration-200">
+        <div class="flex items-center mb-4">
+            <i class="fas fa-search text-blue-600 text-xl mr-3"></i>
+            <h3 class="text-lg font-semibold text-gray-900">Custom Query</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Execute custom SQL queries against your database</p>
+        <a href="/query" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-play mr-2"></i>
+            Open Query Interface
+        </a>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-md p-6 card-hover transition-all duration-200">
+        <div class="flex items-center mb-4">
+            <i class="fas fa-chart-line text-green-600 text-xl mr-3"></i>
+            <h3 class="text-lg font-semibold text-gray-900">Analytics</h3>
+        </div>
+        <p class="text-gray-600 mb-4">View detailed analytics and insights from your feedback data</p>
+        <a href="/analytics" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <i class="fas fa-chart-bar mr-2"></i>
+            View Analytics
+        </a>
+    </div>
+</div>
+{% endblock %}

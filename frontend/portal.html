@@ -4,70 +4,243 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SFAO – User Portal</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M19 36h8v11h-8zm10-8h8v19h-8zm10-11h8v30h-8z' fill='%233b82f6'/%3E%3C/svg%3E">
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .auth-bg {
+      background:
+        radial-gradient(60rem 30rem at 8% 4%, rgba(56, 189, 248, 0.18), transparent 50%),
+        radial-gradient(50rem 26rem at 100% 100%, rgba(59, 130, 246, 0.2), transparent 52%),
+        linear-gradient(145deg, #020617 0%, #0b1224 52%, #111827 100%);
+    }
+
+    .auth-shell {
+      position: relative;
+      width: min(960px, 100%);
+      min-height: 580px;
+      border-radius: 28px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.82);
+      box-shadow: 0 30px 80px rgba(2, 6, 23, 0.6);
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+    }
+
+    .auth-form-panel {
+      position: absolute;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 500ms ease-in-out;
+      z-index: 2;
+      padding: 1.5rem;
+    }
+
+    .sign-in-panel {
+      left: 0;
+      transform: translateX(0%);
+    }
+
+    .sign-up-panel {
+      left: 0;
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .auth-shell.mode-register .sign-in-panel {
+      transform: translateX(-100%);
+    }
+
+    .auth-shell.mode-register .sign-up-panel {
+      transform: translateX(100%);
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 3;
+    }
+
+    .auth-form-card {
+      width: 100%;
+      max-width: 360px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 20px;
+      padding: 1.25rem;
+    }
+
+    .overlay-shell {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 100%;
+      overflow: hidden;
+      transition: transform 500ms ease-in-out;
+      z-index: 10;
+    }
+
+    .auth-shell.mode-register .overlay-shell {
+      transform: translateX(-100%);
+    }
+
+    .overlay {
+      position: relative;
+      left: -100%;
+      width: 200%;
+      height: 100%;
+      background: linear-gradient(130deg, #0891b2 0%, #2563eb 55%, #1d4ed8 100%);
+      transform: translateX(0);
+      transition: transform 500ms ease-in-out;
+    }
+
+    .auth-shell.mode-register .overlay {
+      transform: translateX(50%);
+    }
+
+    .overlay-panel {
+      position: absolute;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      color: #eaf4ff;
+    }
+
+    .overlay-left { transform: translateX(-20%); }
+    .overlay-right { right: 0; transform: translateX(0); }
+    .auth-shell.mode-register .overlay-left { transform: translateX(0); }
+    .auth-shell.mode-register .overlay-right { transform: translateX(20%); }
+
+    .ghost-btn {
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      color: #fff;
+      border-radius: 999px;
+      padding: 0.5rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 960px) {
+      .auth-shell {
+        min-height: 760px;
+      }
+
+      .overlay-shell {
+        display: none;
+      }
+
+      .auth-form-panel {
+        width: 100%;
+      }
+
+      .sign-in-panel,
+      .sign-up-panel,
+      .auth-shell.mode-register .sign-in-panel,
+      .auth-shell.mode-register .sign-up-panel {
+        transform: translateX(0);
+      }
+
+      .sign-up-panel {
+        opacity: 0;
+      }
+
+      .auth-shell.mode-register .sign-up-panel {
+        opacity: 1;
+      }
+
+      .auth-shell.mode-register .sign-in-panel {
+        opacity: 0;
+        pointer-events: none;
+      }
+    }
+  </style>
 </head>
-<body class="bg-gray-950 text-white min-h-screen font-sans">
+<body class="bg-slate-950 text-white min-h-screen font-sans">
 
   <!-- AUTH SCREEN -->
-  <div id="auth-screen" class="min-h-screen flex items-center justify-center p-6">
-    <div class="w-full max-w-md bg-gray-800 rounded-2xl p-8 shadow-xl">
+  <div id="auth-screen" class="auth-bg min-h-screen flex items-center justify-center p-4 md:p-8">
+    <div id="auth-shell" class="auth-shell">
+      <div class="auth-form-panel sign-in-panel">
+        <div class="auth-form-card">
+          <p class="text-cyan-300 text-[11px] uppercase tracking-[0.16em] font-semibold mb-2">SFAO Portal</p>
+          <h2 class="text-2xl font-bold mb-1">Sign in</h2>
+          <p class="text-xs text-slate-400 mb-5">Use your account to continue.</p>
 
-      <!-- Logo -->
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-lg font-bold">S</div>
-        <div>
-          <p class="font-bold text-lg leading-tight">SFAO Portal</p>
-          <p class="text-gray-400 text-xs">Smart Feedback Analyzer for Organization</p>
+          <form id="login-form" class="space-y-4" onsubmit="doLogin(event)">
+            <div>
+              <label class="text-xs text-slate-400 block mb-1.5">Email</label>
+              <input id="login-email" type="email" required placeholder="you@company.com"
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1.5">Password</label>
+              <input id="login-password" type="password" required placeholder="••••••••"
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+            </div>
+            <button type="submit"
+              class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 py-2.5 rounded-xl text-sm font-semibold transition">Sign In</button>
+            <div id="login-error" class="hidden text-xs text-red-400 text-center"></div>
+          </form>
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="flex rounded-lg overflow-hidden border border-gray-600 mb-6">
-        <button id="tab-login" onclick="switchTab('login')"
-          class="flex-1 py-2 text-sm font-semibold bg-blue-600 text-white transition">Login</button>
-        <button id="tab-register" onclick="switchTab('register')"
-          class="flex-1 py-2 text-sm font-semibold bg-transparent text-gray-400 hover:text-white transition">Register</button>
+      <div class="auth-form-panel sign-up-panel">
+        <div class="auth-form-card">
+          <p class="text-blue-300 text-[11px] uppercase tracking-[0.16em] font-semibold mb-2">Create Profile</p>
+          <h2 class="text-2xl font-bold mb-1">Sign up</h2>
+          <p class="text-xs text-slate-400 mb-5">Start your feedback intelligence journey.</p>
+
+          <form id="register-form" class="space-y-4" onsubmit="doRegister(event)">
+            <div>
+              <label class="text-xs text-slate-400 block mb-1.5">Full Name</label>
+              <input id="reg-name" type="text" required placeholder="Jane Smith"
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1.5">Email</label>
+              <input id="reg-email" type="email" required placeholder="you@company.com"
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1.5">Password</label>
+              <input id="reg-password" type="password" required placeholder="Min 6 characters"
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+            </div>
+            <button type="submit"
+              class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 py-2.5 rounded-xl text-sm font-semibold transition">Create Account</button>
+            <div id="reg-message" class="hidden text-xs text-center"></div>
+          </form>
+        </div>
       </div>
 
-      <!-- Login Form -->
-      <form id="login-form" class="space-y-4" onsubmit="doLogin(event)">
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Email</label>
-          <input id="login-email" type="email" required placeholder="you@company.com"
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Password</label>
-          <input id="login-password" type="password" required placeholder="••••••••"
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
-        </div>
-        <button type="submit"
-          class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-semibold transition">Sign In</button>
-        <div id="login-error" class="hidden text-xs text-red-400 text-center"></div>
-      </form>
+      <div class="overlay-shell">
+        <div class="overlay">
+          <div class="overlay-panel overlay-left">
+            <p class="text-[11px] uppercase tracking-[0.16em] font-semibold text-cyan-100 mb-2">Welcome Back</p>
+            <h3 class="text-3xl font-bold mb-2">Already with SFAO?</h3>
+            <p class="text-sm text-blue-50/90 mb-6 max-w-xs">Sign in to monitor sentiment trends, urgency alerts, and action progress in one view.</p>
+            <button id="tab-login" onclick="switchTab('login')" class="ghost-btn">Sign In</button>
+          </div>
 
-      <!-- Register Form -->
-      <form id="register-form" class="space-y-4 hidden" onsubmit="doRegister(event)">
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Full Name</label>
-          <input id="reg-name" type="text" required placeholder="Jane Smith"
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
+          <div class="overlay-panel overlay-right">
+            <p class="text-[11px] uppercase tracking-[0.16em] font-semibold text-cyan-100 mb-2">Hello, Friend</p>
+            <h3 class="text-3xl font-bold mb-2">New to SFAO?</h3>
+            <p class="text-sm text-blue-50/90 mb-6 max-w-xs">Create your account and turn employee and social feedback into trackable insights.</p>
+            <button id="tab-register" onclick="switchTab('register')" class="ghost-btn">Sign Up</button>
+          </div>
         </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Email</label>
-          <input id="reg-email" type="email" required placeholder="you@company.com"
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Password</label>
-          <input id="reg-password" type="password" required placeholder="Min 6 characters"
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
-        </div>
-        <button type="submit"
-          class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-semibold transition">Create Account</button>
-        <div id="reg-message" class="hidden text-xs text-center"></div>
-      </form>
-
+      </div>
     </div>
   </div>
 
@@ -127,10 +300,8 @@
     const API = 'http://localhost:8000';
 
     function switchTab(tab) {
-      document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
-      document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
-      document.getElementById('tab-login').className   = `flex-1 py-2 text-sm font-semibold transition ${tab==='login'   ? 'bg-blue-600 text-white' : 'bg-transparent text-gray-400 hover:text-white'}`;
-      document.getElementById('tab-register').className = `flex-1 py-2 text-sm font-semibold transition ${tab==='register' ? 'bg-blue-600 text-white' : 'bg-transparent text-gray-400 hover:text-white'}`;
+      const shell = document.getElementById('auth-shell');
+      shell.classList.toggle('mode-register', tab === 'register');
     }
 
     async function doLogin(e) {

@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Set
 import hashlib
 import os
 
@@ -13,9 +14,79 @@ from brain import analyze
 from models import Feedback, User, UserSettings, get_db, create_tables, SessionLocal
 from schemas import (
     FeedbackCreate, SurveyCreate, StatusUpdate, UserCreate, UserLogin,
-    UserSettingsUpdate, UserSettingsResponse,
+    UserSettingsUpdate, UserSettingsResponse, UserRoleUpdate,
     FeedbackResponse, UserResponse, SummaryResponse, APIResponse
 )
+
+VALID_ROLES = {
+    "super_admin",
+    "survey_admin",
+    "survey_manager",
+    "analyst",
+    "employee",
+}
+
+ROLE_PERMISSIONS = {
+    "super_admin": {
+        "feedback:ingest",
+        "feedback:update_status",
+        "users:view",
+        "users:update_role",
+        "users:manage_settings_any",
+    },
+    "survey_admin": {
+        "feedback:ingest",
+        "feedback:update_status",
+        "users:view",
+        "users:update_role",
+        "users:manage_settings_any",
+    },
+    "survey_manager": {
+        "feedback:ingest",
+        "feedback:update_status",
+    },
+    "analyst": {
+        "feedback:ingest",
+        "feedback:update_status",
+    },
+    "employee": set(),
+}
+
+def normalize_role(role: Optional[str]) -> str:
+    """Normalize role naming to stable RBAC identifiers."""
+    raw = (role or "employee").strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "admin": "survey_admin",
+        "manager": "survey_manager",
+        "user": "employee",
+    }
+    return aliases.get(raw, raw)
+
+def has_permission(user_role: Optional[str], permission: str) -> bool:
+    role = normalize_role(user_role)
+    return permission in ROLE_PERMISSIONS.get(role, set())
+
+def get_current_user(
+    x_user_id: Optional[int] = Header(default=None, alias="X-User-Id"),
+    db: Session = Depends(get_db),
+) -> User:
+    """Resolve authenticated user from request header."""
+    if x_user_id is None:
+        raise HTTPException(status_code=401, detail="Missing authentication header X-User-Id")
+
+    user = db.query(User).filter(User.id == x_user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid user for provided X-User-Id")
+
+    return user
+
+def require_permission(permission: str):
+    def _guard(current_user: User = Depends(get_current_user)) -> User:
+        if not has_permission(current_user.role, permission):
+            raise HTTPException(status_code=403, detail=f"Permission denied: {permission}")
+        return current_user
+
+    return _guard
 
 # --- Database Functions ---
 def create_feedback_orm(db: Session, feedback_data: FeedbackCreate, analysis_result: dict) -> Feedback:
@@ -82,11 +153,12 @@ def update_feedback_status_orm(db: Session, feedback_id: int, status: str) -> Op
 def create_user_orm(db: Session, user_data: UserCreate) -> User:
     """Create user using SQLAlchemy ORM"""
     hashed_password = hashlib.sha256(user_data.password.encode()).hexdigest()
+    is_first_user = db.query(User).count() == 0
     db_user = User(
         name=user_data.name,
         email=user_data.email,
         password=hashed_password,
-        role="User",
+        role="super_admin" if is_first_user else "employee",
         created_at=datetime.now()
     )
     db.add(db_user)
@@ -117,6 +189,22 @@ def get_or_create_user_settings(db: Session, user: User) -> UserSettings:
     db.refresh(settings)
     return settings
 
+def ensure_super_admin_exists() -> None:
+    """Promote earliest user to super_admin if none exists."""
+    db = SessionLocal()
+    try:
+        all_users = db.query(User).order_by(User.created_at.asc()).all()
+        has_super_admin = any(normalize_role(user.role) == "super_admin" for user in all_users)
+        if has_super_admin:
+            return
+
+        fallback_admin = all_users[0] if all_users else None
+        if fallback_admin:
+            fallback_admin.role = "super_admin"
+            db.commit()
+    finally:
+        db.close()
+
 # --- App Setup ---
 app = FastAPI(title="SFAO - Smart Feedback Analyzer for Organization", version="1.0.0")
 
@@ -130,15 +218,40 @@ app.add_middleware(
 # Initialize database
 init_db()
 create_tables()  # Create SQLAlchemy tables
+ensure_super_admin_exists()
 
-# Serve frontend at /portal
 FRONTEND_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend')
+
+# Canonical portal entry point.
+@app.get("/portal")
+@app.get("/portal/")
+def portal_entry():
+    return FileResponse(os.path.join(FRONTEND_PATH, "portal.html"))
+
+
+@app.get("/portal/dashboard")
+@app.get("/portal/dashboard/")
+@app.get("/portal/index.html")
+def dashboard_entry():
+    return FileResponse(os.path.join(FRONTEND_PATH, "index.html"))
+
+# Backward compatibility for old direct portal file links.
+@app.get("/portal/portal.html")
+def legacy_portal_file_redirect():
+    return RedirectResponse(url="/portal/", status_code=307)
+
+@app.get("/portal/survey.html")
+def legacy_portal_survey_redirect():
+    return RedirectResponse(url="/portal/", status_code=307)
+
+# Serve frontend assets and other pages under /portal
 app.mount("/portal", StaticFiles(directory=FRONTEND_PATH, html=True), name="frontend")
 
 # --- Initialize DB on startup ---
 @app.on_event("startup")
 def startup():
     init_db()
+    ensure_super_admin_exists()
     print("[SFAO] System ready.")
 
 
@@ -149,7 +262,11 @@ def root():
 
 
 @app.post("/ingest", response_model=APIResponse)
-def ingest_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
+def ingest_feedback(
+    feedback: FeedbackCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("feedback:ingest")),
+):
     """Ingest feedback from external sources"""
     try:
         # Analyze the feedback
@@ -229,7 +346,12 @@ def get_feedback_summary(db: Session = Depends(get_db)):
 
 
 @app.put("/feedback/{feedback_id}/status", response_model=APIResponse)
-def update_feedback_status(feedback_id: int, status_update: StatusUpdate, db: Session = Depends(get_db)):
+def update_feedback_status(
+    feedback_id: int,
+    status_update: StatusUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("feedback:update_status")),
+):
     """Update feedback status"""
     try:
         valid_statuses = ["New", "In-Progress", "Resolved"]
@@ -318,8 +440,16 @@ def login_auth(user_login: UserLogin, db: Session = Depends(get_db)):
 
 
 @app.get("/users/{user_id}/settings", response_model=UserSettingsResponse)
-def get_user_settings(user_id: int, db: Session = Depends(get_db)):
+def get_user_settings(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Get persisted settings for a user profile."""
+    can_read_any_settings = has_permission(current_user.role, "users:manage_settings_any")
+    if current_user.id != user_id and not can_read_any_settings:
+        raise HTTPException(status_code=403, detail="You can only view your own settings")
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -335,8 +465,17 @@ def get_user_settings(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/{user_id}/settings", response_model=APIResponse)
-def update_user_settings(user_id: int, payload: UserSettingsUpdate, db: Session = Depends(get_db)):
+def update_user_settings(
+    user_id: int,
+    payload: UserSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Update persisted settings for a user profile."""
+    can_update_any_settings = has_permission(current_user.role, "users:manage_settings_any")
+    if current_user.id != user_id and not can_update_any_settings:
+        raise HTTPException(status_code=403, detail="You can only update your own settings")
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -370,13 +509,57 @@ def update_user_settings(user_id: int, payload: UserSettingsUpdate, db: Session 
     )
 
 @app.get("/users", response_model=List[UserResponse])
-def get_all_users(db: Session = Depends(get_db)):
+def get_all_users(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("users:view")),
+):
     """Get all registered users"""
     try:
         users = db.query(User).order_by(User.created_at.desc()).all()
         return [UserResponse.from_orm(user) for user in users]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve users: {str(e)}")
+
+
+@app.put("/admin/users/{user_id}/role", response_model=APIResponse)
+def update_user_role(
+    user_id: int,
+    payload: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:update_role")),
+):
+    """Update a user's role (survey admin / super admin only)."""
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target user not found")
+
+    new_role = normalize_role(payload.role)
+    if new_role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail=f"Invalid role: {payload.role}")
+
+    actor_role = normalize_role(actor.role)
+    target_role = normalize_role(target.role)
+
+    if target_role == "super_admin" and actor_role != "super_admin":
+        raise HTTPException(status_code=403, detail="Only super admin can modify another super admin")
+
+    if new_role == "super_admin" and actor_role != "super_admin":
+        raise HTTPException(status_code=403, detail="Only super admin can assign super_admin role")
+
+    target.role = new_role
+    db.commit()
+    db.refresh(target)
+
+    return APIResponse(
+        success=True,
+        message="User role updated",
+        data={
+            "id": target.id,
+            "name": target.name,
+            "email": target.email,
+            "role": target.role,
+        },
+    )
 
 # Health check endpoint
 @app.get("/health")

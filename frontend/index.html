@@ -903,9 +903,8 @@
 
       <div class="nav-group">
         <p class="nav-title">Main</p>
-        <a class="nav-link active" href="index.html"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
-        <a class="nav-link" href="survey.html"><i class="fa-solid fa-square-poll-vertical"></i>Survey</a>
-        <a class="nav-link" href="portal.html"><i class="fa-solid fa-users-rectangle"></i>Portal</a>
+        <a class="nav-link active" href="/portal/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+        <a class="nav-link" href="/portal/"><i class="fa-solid fa-users-rectangle"></i>Portal</a>
       </div>
 
       <div class="nav-group">
@@ -1220,6 +1219,14 @@
       }
     }
 
+    function getAuthHeaders(extra = {}) {
+      const headers = { ...extra };
+      if (currentUser?.id) {
+        headers['X-User-Id'] = String(currentUser.id);
+      }
+      return headers;
+    }
+
     function getStoredTheme() {
       return localStorage.getItem('sfao.theme') || 'dark';
     }
@@ -1317,7 +1324,9 @@
     }
 
     async function fetchBackendSettings(userId) {
-      const response = await fetch(`${API}/users/${userId}/settings`);
+      const response = await fetch(`${API}/users/${userId}/settings`, {
+        headers: getAuthHeaders()
+      });
       if (!response.ok) {
         throw new Error('Failed to load server profile settings');
       }
@@ -1338,7 +1347,7 @@
         try {
           const response = await fetch(`${API}/users/${currentUser.id}/settings`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
               name: profile.name,
               timezone: profile.timezone,
@@ -1377,7 +1386,7 @@
         try {
           await fetch(`${API}/users/${currentUser.id}/settings`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
               name: profile.name,
               timezone: profile.timezone,
@@ -1398,7 +1407,7 @@
 
     function logoutUser() {
       sessionStorage.removeItem('sfao_user');
-      window.location.href = 'portal.html';
+      window.location.href = '/portal/';
     }
 
     async function initUiControls() {
@@ -1567,9 +1576,10 @@
     }
 
     async function updateStatus(id, status) {
+      const authHeaders = getAuthHeaders({ 'Content-Type': 'application/json' });
       const payload = {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ status })
       };
 
@@ -1578,7 +1588,7 @@
         if (!patchResp.ok) {
           await fetch(`${API}/feedback/${id}/status`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders,
             body: JSON.stringify({ status })
           });
         }

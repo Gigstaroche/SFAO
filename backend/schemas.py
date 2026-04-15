@@ -31,6 +31,9 @@ class UserSettingsUpdate(BaseModel):
     refresh_interval: Optional[int] = Field(None, ge=5, le=300, description="Refresh interval in seconds")
     notifications_enabled: Optional[bool] = Field(None, description="Notification preference")
 
+class UserRoleUpdate(BaseModel):
+    role: str = Field(..., description="New role for the target user")
+
 # Response Models
 class FeedbackResponse(BaseModel):
     id: int

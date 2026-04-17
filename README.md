@@ -15,9 +15,9 @@ A unified offline intelligence platform designed to aggregate, analyze, and visu
    ```
 
 3. **Access the app:**
-   - Dashboard: http://localhost:8000/portal/index.html
+   - Dashboard: http://localhost:8000/portal/dashboard
    - Survey: http://localhost:8000/portal/survey.html
-   - Portal: http://localhost:8000/portal/portal.html
+   - Login is built into the dashboard
    - API Docs: http://localhost:8000/docs
 
 4. **Generate test data:**
@@ -40,7 +40,7 @@ A unified offline intelligence platform designed to aggregate, analyze, and visu
 - ✅ Multi-source feedback aggregation
 - ✅ Executive dashboard with live charts
 - ✅ Employee survey system
-- ✅ User authentication portal
+- ✅ Dashboard login overlay
 - ✅ Action tracking (New → In-Progress → Resolved)
 - ✅ Social media feedback ingestion (mock data via simulator)
 
@@ -52,12 +52,12 @@ A unified offline intelligence platform designed to aggregate, analyze, and visu
 - **Administrators**: Manage database and system operations.
 
 ### For Employees
-1. **Access Portal**: Go to `http://localhost:8000/portal` and login with company email.
+1. **Access Dashboard**: Go to `http://localhost:8000/portal` and login with company email.
 2. **Submit Feedback**: Navigate to Survey page, fill out the form with text, category, and rating.
-3. **Track Progress**: View submission status in the portal (New → In-Progress → Resolved).
+3. **Track Progress**: View submission status in the dashboard (New → In-Progress → Resolved).
 
 ### For Executives
-1. **Dashboard Access**: Visit `http://localhost:8000/portal/index.html` for the HUD interface.
+1. **Dashboard Access**: Visit `http://localhost:8000/portal/dashboard` for the HUD interface.
 2. **Monitor Metrics**: View live charts for sentiment trends, categories, and urgency levels.
 3. **Analyze Data**: Filter by time, category, or sentiment to identify patterns.
 
@@ -83,8 +83,7 @@ SFAO/
 │   └── models/      # AI model storage
 ├── frontend/
 │   ├── index.html   # Executive dashboard
-│   ├── survey.html  # Survey form
-│   └── portal.html  # User portal
+│   └── survey.html  # Survey form
 ├── scripts/
 │   └── simulator.py # Test data generator
 ├── sfao.db         # SQLite database

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SFAO – Submit Feedback</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M19 36h8v11h-8zm10-8h8v19h-8zm10-11h8v30h-8z' fill='%233b82f6'/%3E%3C/svg%3E">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com" onerror="(function(){var link=document.createElement('link');link.rel='stylesheet';link.href='assets/offline.css';document.head.appendChild(link);})();"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <style>
     :root {
@@ -47,6 +47,7 @@
     
     .text-muted { color: var(--text-muted); }
     .text-secondary { color: var(--text-secondary); }
+
   </style>
 </head>
 <body class="min-h-screen font-sans flex flex-col" data-theme="dark">
@@ -68,14 +69,11 @@
       
       <div class="flex items-center gap-6">
         <nav class="hidden md:flex gap-6">
-          <a href="index.html" class="px-3 py-2 rounded-lg text-secondary hover:text-primary text-sm font-medium">
+          <a href="/portal/dashboard" class="px-3 py-2 rounded-lg text-secondary hover:text-primary text-sm font-medium">
             <i class="fas fa-chart-pie mr-2"></i>Dashboard
           </a>
           <a href="survey.html" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium">
             <i class="fas fa-poll mr-2"></i>Survey
-          </a>
-          <a href="/portal/" class="px-3 py-2 rounded-lg text-secondary hover:text-primary text-sm font-medium">
-            <i class="fas fa-user-circle mr-2"></i>Portal
           </a>
         </nav>
         
@@ -154,7 +152,7 @@
   </main>
 
   <script>
-    const API = 'http://localhost:8000';
+    const API = window.location.origin;
     let selectedRating = 0;
 
     // Theme Management
@@ -209,7 +207,8 @@
         });
         const data = await res.json();
         if (res.ok) {
-          showResult(`✓ Thank you! Your feedback was recorded as "${data.sentiment}" (${data.category}).`, 'success');
+          const result = data?.data || {};
+          showResult(`✓ Thank you! Your feedback was recorded as "${result.sentiment || 'N/A'}" (${result.category || 'General'}).`, 'success');
           e.target.reset();
           selectedRating = 0;
           document.querySelectorAll('.star').forEach(s => s.classList.replace('text-yellow-400', 'text-gray-600'));

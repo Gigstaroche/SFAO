@@ -5,9 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SFAO - Analytics Dashboard</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M19 36h8v11h-8zm10-8h8v19h-8zm10-11h8v30h-8z' fill='%233b82f6'/%3E%3C/svg%3E">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com" onerror="(function(){var link=document.createElement('link');link.rel='stylesheet';link.href='assets/offline.css';document.head.appendChild(link);})();"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script>
+    try {
+      if (sessionStorage.getItem('sfao_user')) {
+        document.documentElement.classList.add('has-session');
+      }
+    } catch (_) {}
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -80,6 +87,285 @@
       min-height: 100%;
     }
 
+    .app-frame {
+      width: min(1600px, calc(100% - 1.8rem));
+      margin: 0.7rem auto;
+      min-height: calc(100vh - 2rem);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(95, 117, 197, 0.25);
+      overflow: hidden;
+      background: rgba(8, 13, 27, 0.55);
+      box-shadow: 0 22px 50px rgba(4, 8, 22, 0.35);
+    }
+
+    html.has-session #auth-screen {
+      display: none;
+    }
+
+    html:not(.has-session) #app-frame {
+      display: none;
+    }
+
+    .auth-screen {
+      min-height: 100vh;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(55rem 28rem at 8% 8%, rgba(84, 167, 255, 0.22), transparent 50%),
+        radial-gradient(50rem 24rem at 92% 100%, rgba(68, 215, 182, 0.12), transparent 46%),
+        linear-gradient(160deg, #080d1b 0%, #0b1020 58%, #0f1430 100%);
+    }
+
+    .auth-shell {
+      width: min(1080px, 100%);
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 28px;
+      border: 1px solid rgba(95, 117, 197, 0.26);
+      background: rgba(8, 13, 27, 0.68);
+      box-shadow: 0 24px 60px rgba(4, 8, 22, 0.45);
+      backdrop-filter: blur(12px);
+    }
+
+    .auth-copy {
+      border-radius: 22px;
+      padding: clamp(1.5rem, 3vw, 3rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1rem;
+      background:
+        linear-gradient(160deg, rgba(17, 23, 48, 0.98), rgba(12, 18, 38, 0.94)),
+        linear-gradient(135deg, rgba(84, 167, 255, 0.18), rgba(68, 215, 182, 0.08));
+      border: 1px solid rgba(95, 117, 197, 0.22);
+    }
+
+    .auth-copy h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 3.35rem);
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+    }
+
+    .auth-copy p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.6;
+      max-width: 36rem;
+    }
+
+    .auth-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      width: fit-content;
+      padding: 0.45rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(68, 215, 182, 0.35);
+      background: rgba(68, 215, 182, 0.12);
+      color: #b7ffe8;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .auth-points {
+      display: grid;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .auth-point {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      padding: 0.85rem 0.95rem;
+      border-radius: 16px;
+      border: 1px solid rgba(95, 117, 197, 0.2);
+      background: rgba(11, 16, 32, 0.55);
+    }
+
+    .auth-point i {
+      color: #72c1ff;
+      margin-top: 0.2rem;
+    }
+
+    .auth-point strong {
+      display: block;
+      font-size: 0.88rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .auth-point span {
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .auth-card {
+      border-radius: 22px;
+      padding: clamp(1.2rem, 2.8vw, 2rem);
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(95, 117, 197, 0.22);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .auth-tab {
+      border: 1px solid rgba(95, 117, 197, 0.25);
+      border-radius: 14px;
+      background: rgba(11, 16, 32, 0.62);
+      color: var(--muted);
+      padding: 0.8rem 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      transition: 160ms ease;
+    }
+
+    .auth-tab.active {
+      color: #fff;
+      border-color: rgba(84, 167, 255, 0.5);
+      background: linear-gradient(135deg, rgba(84, 167, 255, 0.3), rgba(68, 215, 182, 0.15));
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .auth-field {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .auth-field label i {
+      margin-right: 0.35rem;
+      color: #9ecbff;
+    }
+
+    .auth-inline {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.55rem;
+      align-items: center;
+    }
+
+    .auth-input-icon {
+      position: relative;
+    }
+
+    .auth-input-icon i {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ecbff;
+      pointer-events: none;
+      font-size: 0.85rem;
+    }
+
+    .auth-input-icon input {
+      padding-left: 2.1rem;
+    }
+
+    .auth-code-btn {
+      border: 1px solid rgba(95, 117, 197, 0.34);
+      border-radius: 12px;
+      background: rgba(11, 16, 32, 0.72);
+      color: #dbe7ff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.75rem 0.8rem;
+      white-space: nowrap;
+      transition: all 160ms ease;
+    }
+
+    .auth-code-btn:hover {
+      border-color: rgba(84, 167, 255, 0.5);
+      background: rgba(84, 167, 255, 0.14);
+    }
+
+    .auth-code-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .app-frame {
+      width: min(1600px, calc(100% - 1.8rem));
+      margin: 0.7rem auto;
+      min-height: calc(100vh - 2rem);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(95, 117, 197, 0.25);
+      overflow: hidden;
+      background: rgba(8, 13, 27, 0.55);
+      box-shadow: 0 22px 50px rgba(4, 8, 22, 0.35);
+    }
+
+    .auth-field input {
+      width: 100%;
+      background: rgba(11, 16, 32, 0.75);
+      border: 1px solid rgba(95, 117, 197, 0.28);
+      border-radius: 14px;
+      padding: 0.8rem 0.95rem;
+      color: var(--text);
+      outline: none;
+    }
+
+    .auth-field input:focus {
+      border-color: rgba(84, 167, 255, 0.6);
+      box-shadow: 0 0 0 3px rgba(84, 167, 255, 0.12);
+    }
+
+    .auth-button {
+      border: 0;
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #54a7ff, #44d7b6);
+      box-shadow: 0 14px 30px rgba(84, 167, 255, 0.24);
+      transition: transform 160ms ease, filter 160ms ease;
+    }
+
+    .auth-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .auth-message {
+      min-height: 1.1rem;
+      text-align: center;
+      font-size: 0.78rem;
+    }
+
+    .auth-message.success {
+      color: #6ff0c9;
+    }
+
+    .auth-message.error {
+      color: #ff8ea8;
+    }
+
+    .auth-hint {
+      margin-top: 0.5rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.45;
+    }
     .app-frame {
       width: min(1600px, calc(100% - 1.8rem));
       margin: 0.7rem auto;
@@ -890,7 +1176,93 @@
   </style>
 </head>
 <body>
-  <div class="app-frame">
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-shell">
+      <section class="auth-copy">
+        <div class="auth-chip"><i class="fa-solid fa-right-to-bracket"></i> organization dashboard access</div>
+        <h1>Sign in to access your organization dashboard.</h1>
+        <p>View sentiment trends, urgent feedback, and action status in one secure workspace.</p>
+        <div class="auth-points">
+          <div class="auth-point">
+            <i class="fa-solid fa-chart-line"></i>
+            <div>
+              <strong>Immediate access</strong>
+              <span>Successful sign-in opens the dashboard directly.</span>
+            </div>
+          </div>
+          <div class="auth-point">
+            <i class="fa-solid fa-user-shield"></i>
+            <div>
+              <strong>Secure sessions</strong>
+              <span>Saved sessions restore access automatically, and logout returns to sign-in.</span>
+            </div>
+          </div>
+          <div class="auth-point">
+            <i class="fa-solid fa-sliders"></i>
+            <div>
+              <strong>Role-based experience</strong>
+              <span>Access and settings are applied based on your account role.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-card">
+        <div class="auth-tabs">
+          <button type="button" id="auth-login-tab" class="auth-tab active">Sign in</button>
+          <button type="button" id="auth-register-tab" class="auth-tab">Sign up</button>
+        </div>
+
+        <form id="login-form" class="auth-form" onsubmit="doLogin(event)">
+          <div class="auth-field">
+            <label for="login-email">Email</label>
+            <input id="login-email" type="email" required placeholder="you@company.com" />
+          </div>
+          <div class="auth-field">
+            <label for="login-org-code">Organization code (if required)</label>
+            <input id="login-org-code" type="text" placeholder="Enter code" />
+          </div>
+          <div class="auth-field">
+            <label for="login-password">Password</label>
+            <input id="login-password" type="password" required placeholder="••••••••" />
+          </div>
+          <button type="submit" class="auth-button">Sign in</button>
+          <div id="auth-message" class="auth-message"></div>
+        </form>
+
+        <form id="register-form" class="auth-form hidden" onsubmit="doRegister(event)">
+          <div class="auth-field">
+            <label for="reg-name">Full name</label>
+            <input id="reg-name" type="text" required placeholder="Jane Smith" />
+          </div>
+          <div class="auth-field">
+            <label for="reg-email"><i class="fa-solid fa-building"></i>Work email</label>
+            <div class="auth-inline">
+              <div class="auth-input-icon">
+                <i class="fa-solid fa-envelope"></i>
+                <input id="reg-email" type="email" required placeholder="you@company.com" />
+              </div>
+              <button type="button" id="send-signup-code" class="auth-code-btn">Send code</button>
+            </div>
+          </div>
+          <div class="auth-field">
+            <label id="reg-org-code-label" for="reg-org-code">Email verification code</label>
+            <input id="reg-org-code" type="text" required placeholder="6-digit code from your email" />
+          </div>
+          <div class="auth-field">
+            <label for="reg-password">Password</label>
+            <input id="reg-password" type="password" required placeholder="Min 6 characters" />
+          </div>
+          <button type="submit" class="auth-button">Create account</button>
+          <div id="auth-message-register" class="auth-message"></div>
+          <p class="auth-hint">Use your organization email and the access code provided by your administrator.</p>
+          <p id="auth-dev-hint" class="auth-hint hidden"></p>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <div id="app-frame" class="app-frame">
     <div class="shell">
     <aside class="sidebar">
       <div class="brand">
@@ -904,7 +1276,7 @@
       <div class="nav-group">
         <p class="nav-title">Main</p>
         <a class="nav-link active" href="/portal/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
-        <a class="nav-link" href="/portal/"><i class="fa-solid fa-users-rectangle"></i>Portal</a>
+        <a class="nav-link" href="/portal/survey.html"><i class="fa-solid fa-clipboard-list"></i>Survey</a>
       </div>
 
       <div class="nav-group">
@@ -1120,13 +1492,21 @@
   <div id="toast" class="toast">Saved.</div>
 
   <script>
-    const API = 'http://localhost:8000';
+    const API = window.location.origin;
     let sentimentChart = null;
     let sourceChart = null;
     let categoryChart = null;
     let refreshTimer = null;
     let currentUser = null;
     let latestFeed = [];
+    let authMode = 'login';
+    let codeCooldownSeconds = 0;
+    let codeCooldownTimer = null;
+    let authConfig = {
+      signupMode: 'email',
+      requireLoginCode: false,
+      devCodeHint: null
+    };
     const filters = {
       alertsOnly: false,
       category: 'all',
@@ -1154,11 +1534,271 @@
       label: '#cfdbff'
     };
 
+    const PUBLIC_EMAIL_DOMAINS = new Set([
+      'gmail.com',
+      'yahoo.com',
+      'outlook.com',
+      'hotmail.com',
+      'icloud.com',
+      'aol.com',
+      'protonmail.com',
+      'gmx.com',
+      'mail.com',
+      'live.com',
+      'msn.com'
+    ]);
+
+    function isWorkEmail(email) {
+      const value = (email || '').trim().toLowerCase();
+      if (!value.includes('@')) return false;
+      const domain = value.split('@').pop();
+      return domain && !PUBLIC_EMAIL_DOMAINS.has(domain);
+    }
+
     function showToast(message) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function showAuthMode(mode) {
+      authMode = mode === 'register' ? 'register' : 'login';
+      document.getElementById('login-form').classList.toggle('hidden', authMode !== 'login');
+      document.getElementById('register-form').classList.toggle('hidden', authMode !== 'register');
+      document.getElementById('auth-login-tab').classList.toggle('active', authMode === 'login');
+      document.getElementById('auth-register-tab').classList.toggle('active', authMode === 'register');
+      document.getElementById('auth-message').textContent = '';
+      document.getElementById('auth-message').className = 'auth-message';
+      document.getElementById('auth-message-register').textContent = '';
+      document.getElementById('auth-message-register').className = 'auth-message';
+    }
+
+    function showAuthMessage(id, message, type) {
+      const el = document.getElementById(id);
+      el.textContent = message;
+      el.className = `auth-message ${type === 'success' ? 'success' : 'error'}`;
+    }
+
+    function applyAuthConfig(config) {
+      authConfig = {
+        ...authConfig,
+        ...(config || {})
+      };
+
+      const sendCodeBtn = document.getElementById('send-signup-code');
+      const codeLabel = document.getElementById('reg-org-code-label');
+      const codeInput = document.getElementById('reg-org-code');
+      const loginOrgCodeLabel = document.querySelector('label[for="login-org-code"]');
+      const devHint = document.getElementById('auth-dev-hint');
+
+      if (authConfig.signupMode === 'org_code') {
+        sendCodeBtn.classList.add('hidden');
+        codeLabel.textContent = 'Organization code';
+        codeInput.placeholder = 'Enter organization code';
+      } else {
+        sendCodeBtn.classList.remove('hidden');
+        codeLabel.textContent = 'Email verification code';
+        codeInput.placeholder = '6-digit code from your email';
+        setCodeButtonState();
+      }
+
+      loginOrgCodeLabel.textContent = authConfig.requireLoginCode
+        ? 'Organization code'
+        : 'Organization code (if required)';
+
+      if (authConfig.devCodeHint) {
+        devHint.textContent = `Development mode: use code ${authConfig.devCodeHint}`;
+        devHint.classList.remove('hidden');
+      } else {
+        devHint.textContent = '';
+        devHint.classList.add('hidden');
+      }
+    }
+
+    async function loadAuthConfig() {
+      try {
+        const response = await fetch(`${API}/auth/config`);
+        const payload = await response.json();
+        if (!response.ok) return;
+        const data = payload?.data || {};
+        applyAuthConfig({
+          signupMode: data.signup_mode || 'email',
+          requireLoginCode: Boolean(data.require_login_code),
+          devCodeHint: data.dev_code_hint || null
+        });
+      } catch (_) {
+        applyAuthConfig(authConfig);
+      }
+    }
+
+    async function initAuthControls() {
+      document.getElementById('auth-login-tab').addEventListener('click', () => showAuthMode('login'));
+      document.getElementById('auth-register-tab').addEventListener('click', () => showAuthMode('register'));
+      document.getElementById('send-signup-code').addEventListener('click', sendSignupCode);
+      await loadAuthConfig();
+      showAuthMode('login');
+    }
+
+    function setCodeButtonState() {
+      const button = document.getElementById('send-signup-code');
+      if (!button) return;
+      if (codeCooldownSeconds > 0) {
+        button.disabled = true;
+        button.textContent = `Resend in ${codeCooldownSeconds}s`;
+        return;
+      }
+      button.disabled = false;
+      button.textContent = 'Send code';
+    }
+
+    function startCodeCooldown(seconds = 45) {
+      codeCooldownSeconds = seconds;
+      setCodeButtonState();
+
+      if (codeCooldownTimer) {
+        clearInterval(codeCooldownTimer);
+      }
+
+      codeCooldownTimer = setInterval(() => {
+        codeCooldownSeconds -= 1;
+        if (codeCooldownSeconds <= 0) {
+          clearInterval(codeCooldownTimer);
+          codeCooldownTimer = null;
+          codeCooldownSeconds = 0;
+        }
+        setCodeButtonState();
+      }, 1000);
+    }
+
+    async function sendSignupCode() {
+      if (authConfig.signupMode !== 'email') {
+        showAuthMessage('auth-message-register', 'Sign-up code is managed by organization code in this environment.', 'error');
+        return;
+      }
+
+      const email = document.getElementById('reg-email').value.trim();
+      if (!isWorkEmail(email)) {
+        showAuthMessage('auth-message-register', 'Use a work or organizational email address.', 'error');
+        return;
+      }
+
+      const button = document.getElementById('send-signup-code');
+      button.disabled = true;
+      button.textContent = 'Sending...';
+
+      try {
+        const res = await fetch(`${API}/auth/send-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showAuthMessage('auth-message-register', data.detail || data.message || 'Could not send code.', 'error');
+          setCodeButtonState();
+          return;
+        }
+
+        showAuthMessage('auth-message-register', 'Verification code sent to your work email.', 'success');
+        startCodeCooldown(45);
+      } catch {
+        showAuthMessage('auth-message-register', 'Cannot send code right now. Try again.', 'error');
+        setCodeButtonState();
+      }
+    }
+
+    async function doLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const orgCode = document.getElementById('login-org-code').value.trim();
+
+      if (!isWorkEmail(email)) {
+        showAuthMessage('auth-message', 'Use a work or organizational email address.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            org_code: orgCode || null
+          })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          const user = data?.data || data;
+          sessionStorage.setItem('sfao_user', JSON.stringify(user));
+          window.location.reload();
+          return;
+        }
+
+        showAuthMessage('auth-message', data.detail || data.message || 'Login failed', 'error');
+      } catch {
+        showAuthMessage('auth-message', 'Cannot reach server. Start the backend first.', 'error');
+      }
+    }
+
+    async function doRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value;
+      const email = document.getElementById('reg-email').value.trim();
+      const orgCode = document.getElementById('reg-org-code').value.trim();
+      const password = document.getElementById('reg-password').value;
+
+      if (!isWorkEmail(email)) {
+        showAuthMessage('auth-message-register', 'Use a work or organizational email address.', 'error');
+        return;
+      }
+
+      if (!orgCode) {
+        showAuthMessage(
+          'auth-message-register',
+          authConfig.signupMode === 'email'
+            ? 'Enter the verification code sent to your email.'
+            : 'Enter your organization code.',
+          'error'
+        );
+        return;
+      }
+
+      if (password.length < 6) {
+        showAuthMessage('auth-message-register', 'Password must be at least 6 characters.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            org_code: orgCode
+          })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          document.getElementById('login-email').value = email;
+          document.getElementById('login-password').value = '';
+          document.getElementById('login-org-code').value = '';
+          showAuthMode('login');
+          showAuthMessage('auth-message', 'Account created. Sign in to continue.', 'success');
+          return;
+        }
+
+        showAuthMessage('auth-message-register', data.detail || data.message || 'Registration failed', 'error');
+      } catch {
+        showAuthMessage('auth-message-register', 'Cannot reach server.', 'error');
+      }
     }
 
     function updateFilterSummary(total, visible) {
@@ -1221,8 +1861,8 @@
 
     function getAuthHeaders(extra = {}) {
       const headers = { ...extra };
-      if (currentUser?.id) {
-        headers['X-User-Id'] = String(currentUser.id);
+      if (currentUser?.access_token) {
+        headers['Authorization'] = `Bearer ${currentUser.access_token}`;
       }
       return headers;
     }
@@ -1407,7 +2047,7 @@
 
     function logoutUser() {
       sessionStorage.removeItem('sfao_user');
-      window.location.href = '/portal/';
+      window.location.reload();
     }
 
     async function initUiControls() {
@@ -1711,9 +2351,16 @@
 
     async function refresh() {
       try {
+        const feedParams = new URLSearchParams();
+        feedParams.set('limit', '200');
+        if (filters.alertsOnly) feedParams.set('urgency', 'High');
+        if (filters.category !== 'all') feedParams.set('category', filters.category);
+        if (filters.channel !== 'all') feedParams.set('source', filters.channel);
+        if (filters.query) feedParams.set('q', filters.query);
+
         const [summaryRes, feedRes] = await Promise.all([
-          fetch(`${API}/summary`),
-          fetch(`${API}/feed?limit=20`)
+          fetch(`${API}/summary`, { headers: getAuthHeaders() }),
+          fetch(`${API}/feed?${feedParams.toString()}`, { headers: getAuthHeaders() })
         ]);
 
         if (!summaryRes.ok || !feedRes.ok) {
@@ -1735,7 +2382,13 @@
       }
     }
 
-    initUiControls().then(refresh);
+    initAuthControls();
+
+    const savedUser = getSessionUser();
+    if (savedUser) {
+      currentUser = savedUser;
+      initUiControls().then(refresh);
+    }
   </script>
 </body>
 </html>

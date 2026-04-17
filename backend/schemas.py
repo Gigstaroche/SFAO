@@ -20,10 +20,16 @@ class UserCreate(BaseModel):
     name: str = Field(..., description="User's full name")
     email: str = Field(..., description="User's email address")
     password: str = Field(..., min_length=6, description="User's password")
+    org_code: Optional[str] = Field(None, description="Organization access code")
 
 class UserLogin(BaseModel):
     email: str = Field(..., description="User's email address")
     password: str = Field(..., description="User's password")
+    org_code: Optional[str] = Field(None, description="Organization sign-in code")
+
+
+class EmailCodeRequest(BaseModel):
+    email: str = Field(..., description="Organization email used for verification")
 
 class UserSettingsUpdate(BaseModel):
     name: Optional[str] = Field(None, description="Display name")

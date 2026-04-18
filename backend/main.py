@@ -17,10 +17,23 @@ from email.message import EmailMessage
 
 from database import init_db, insert_feedback, get_all_feedback, get_summary, update_status, insert_user, get_user_by_email
 from brain import analyze
-from models import Feedback, User, UserSettings, get_db, create_tables, SessionLocal
+from models import (
+    Feedback,
+    User,
+    UserSettings,
+    Organization,
+    Department,
+    RolePermission,
+    AuditLog,
+    NotificationPreference,
+    get_db,
+    create_tables,
+    SessionLocal,
+)
 from schemas import (
     FeedbackCreate, SurveyCreate, StatusUpdate, UserCreate, UserLogin, EmailCodeRequest,
     UserSettingsUpdate, UserSettingsResponse, UserRoleUpdate,
+    OrganizationCreate, DepartmentCreate, RolePermissionsUpdate,
     FeedbackResponse, UserResponse, SummaryResponse, APIResponse
 )
 
@@ -63,6 +76,8 @@ ROLE_PERMISSIONS = {
         "feedback:view",
     },
 }
+
+DYNAMIC_ROLE_PERMISSIONS: Dict[str, Set[str]] = {}
 
 PUBLIC_EMAIL_DOMAINS = {
     "gmail.com",
@@ -291,9 +306,45 @@ def normalize_role(role: Optional[str]) -> str:
     }
     return aliases.get(raw, raw)
 
+def refresh_role_permissions_cache(db: Session) -> None:
+    """Refresh in-memory RBAC cache from DB overrides."""
+    role_rows = db.query(RolePermission).filter(RolePermission.is_allowed == True).all()
+    if not role_rows:
+        DYNAMIC_ROLE_PERMISSIONS.clear()
+        return
+
+    grouped: Dict[str, Set[str]] = {}
+    for row in role_rows:
+        role_name = normalize_role(row.role)
+        grouped.setdefault(role_name, set()).add(row.permission)
+
+    DYNAMIC_ROLE_PERMISSIONS.clear()
+    DYNAMIC_ROLE_PERMISSIONS.update(grouped)
+
+
+def sync_role_permissions_seed(db: Session) -> None:
+    """Seed DB role_permissions from static defaults for missing entries."""
+    existing_pairs = {
+        (normalize_role(item.role), item.permission)
+        for item in db.query(RolePermission).all()
+    }
+
+    for role, permissions in ROLE_PERMISSIONS.items():
+        normalized_role = normalize_role(role)
+        for permission in permissions:
+            key = (normalized_role, permission)
+            if key in existing_pairs:
+                continue
+            db.add(RolePermission(role=normalized_role, permission=permission, is_allowed=True))
+
+    db.commit()
+    refresh_role_permissions_cache(db)
+
+
 def has_permission(user_role: Optional[str], permission: str) -> bool:
     role = normalize_role(user_role)
-    return permission in ROLE_PERMISSIONS.get(role, set())
+    source = DYNAMIC_ROLE_PERMISSIONS if DYNAMIC_ROLE_PERMISSIONS else ROLE_PERMISSIONS
+    return permission in source.get(role, set())
 
 def get_current_user(
     authorization: Optional[str] = Header(default=None, alias="Authorization"),
@@ -317,7 +368,12 @@ def get_current_user(
     return user
 
 def require_permission(permission: str):
-    def _guard(current_user: User = Depends(get_current_user)) -> User:
+    def _guard(
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> User:
+        if not DYNAMIC_ROLE_PERMISSIONS:
+            refresh_role_permissions_cache(db)
         if not has_permission(current_user.role, permission):
             raise HTTPException(status_code=403, detail=f"Permission denied: {permission}")
         return current_user
@@ -425,6 +481,26 @@ def get_or_create_user_settings(db: Session, user: User) -> UserSettings:
     db.refresh(settings)
     return settings
 
+
+def record_audit_event(
+    db: Session,
+    actor: Optional[User],
+    action: str,
+    target_type: Optional[str] = None,
+    target_id: Optional[str] = None,
+    details: Optional[dict] = None,
+) -> None:
+    event = AuditLog(
+        actor_user_id=actor.id if actor else None,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        details=json.dumps(details or {}),
+        created_at=datetime.now(),
+    )
+    db.add(event)
+    db.commit()
+
 def ensure_super_admin_exists() -> None:
     """Promote earliest user to super_admin if none exists."""
     db = SessionLocal()
@@ -455,6 +531,8 @@ app.add_middleware(
 init_db()
 create_tables()  # Create SQLAlchemy tables
 ensure_super_admin_exists()
+with SessionLocal() as bootstrap_db:
+    sync_role_permissions_seed(bootstrap_db)
 
 FRONTEND_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend')
 
@@ -478,7 +556,10 @@ app.mount("/portal", StaticFiles(directory=FRONTEND_PATH, html=True), name="fron
 @app.on_event("startup")
 def startup():
     init_db()
+    create_tables()
     ensure_super_admin_exists()
+    with SessionLocal() as bootstrap_db:
+        sync_role_permissions_seed(bootstrap_db)
     print("[SFAO] System ready.")
 
 
@@ -875,6 +956,209 @@ def update_user_role(
             "role": target.role,
         },
     )
+
+
+@app.get("/admin/rbac/roles", response_model=APIResponse)
+def get_role_permissions(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:update_role")),
+):
+    rows = db.query(RolePermission).filter(RolePermission.is_allowed == True).all()
+    role_map: Dict[str, Set[str]] = {}
+    for row in rows:
+        role_map.setdefault(normalize_role(row.role), set()).add(row.permission)
+
+    if not role_map:
+        role_map = {role: set(perms) for role, perms in ROLE_PERMISSIONS.items()}
+
+    data = {role: sorted(list(perms)) for role, perms in role_map.items()}
+    record_audit_event(db, actor, "rbac.roles.view", "rbac", "all", {"roles": len(data)})
+
+    return APIResponse(success=True, message="RBAC role permissions", data=data)
+
+
+@app.put("/admin/rbac/roles/{role}/permissions", response_model=APIResponse)
+def update_role_permissions(
+    role: str,
+    payload: RolePermissionsUpdate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:update_role")),
+):
+    normalized_role = normalize_role(role)
+    if normalized_role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
+
+    allowed_permissions = {
+        perm
+        for permissions in ROLE_PERMISSIONS.values()
+        for perm in permissions
+    }
+
+    requested = {item.strip() for item in payload.permissions if item.strip()}
+    invalid_permissions = sorted(list(requested - allowed_permissions))
+    if invalid_permissions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported permissions: {', '.join(invalid_permissions)}",
+        )
+
+    db.query(RolePermission).filter(RolePermission.role == normalized_role).delete()
+    for permission in sorted(list(requested)):
+        db.add(RolePermission(role=normalized_role, permission=permission, is_allowed=True))
+
+    db.commit()
+    refresh_role_permissions_cache(db)
+    record_audit_event(
+        db,
+        actor,
+        "rbac.role_permissions.update",
+        "role",
+        normalized_role,
+        {"permissions": sorted(list(requested))},
+    )
+
+    return APIResponse(
+        success=True,
+        message="Role permissions updated",
+        data={"role": normalized_role, "permissions": sorted(list(requested))},
+    )
+
+
+@app.get("/admin/organizations", response_model=APIResponse)
+def list_organizations(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:view")),
+):
+    organizations = db.query(Organization).order_by(Organization.name.asc()).all()
+    data = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "code": item.code,
+            "is_active": bool(item.is_active),
+        }
+        for item in organizations
+    ]
+    record_audit_event(db, actor, "organization.list", "organization", "all", {"count": len(data)})
+    return APIResponse(success=True, message="Organizations", data=data)
+
+
+@app.post("/admin/organizations", response_model=APIResponse)
+def create_organization(
+    payload: OrganizationCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:update_role")),
+):
+    name = payload.name.strip()
+    code = payload.code.strip().upper() if payload.code else None
+
+    existing = db.query(Organization).filter(Organization.name.ilike(name)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Organization already exists")
+
+    if code:
+        duplicate_code = db.query(Organization).filter(Organization.code == code).first()
+        if duplicate_code:
+            raise HTTPException(status_code=400, detail="Organization code already exists")
+
+    org = Organization(name=name, code=code, is_active=True)
+    db.add(org)
+    db.commit()
+    db.refresh(org)
+
+    record_audit_event(db, actor, "organization.create", "organization", str(org.id), {"name": name, "code": code})
+
+    return APIResponse(
+        success=True,
+        message="Organization created",
+        data={"id": org.id, "name": org.name, "code": org.code, "is_active": bool(org.is_active)},
+    )
+
+
+@app.get("/admin/departments", response_model=APIResponse)
+def list_departments(
+    organization_id: Optional[int] = Query(default=None, ge=1),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:view")),
+):
+    query = db.query(Department)
+    if organization_id:
+        query = query.filter(Department.organization_id == organization_id)
+
+    departments = query.order_by(Department.name.asc()).all()
+    data = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "organization_id": item.organization_id,
+            "is_active": bool(item.is_active),
+        }
+        for item in departments
+    ]
+    record_audit_event(db, actor, "department.list", "department", "all", {"count": len(data)})
+    return APIResponse(success=True, message="Departments", data=data)
+
+
+@app.post("/admin/departments", response_model=APIResponse)
+def create_department(
+    payload: DepartmentCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:update_role")),
+):
+    name = payload.name.strip()
+    org_id = payload.organization_id
+
+    if org_id:
+        org = db.query(Organization).filter(Organization.id == org_id).first()
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+
+    dept = Department(name=name, organization_id=org_id, is_active=True)
+    db.add(dept)
+    db.commit()
+    db.refresh(dept)
+
+    record_audit_event(
+        db,
+        actor,
+        "department.create",
+        "department",
+        str(dept.id),
+        {"name": name, "organization_id": org_id},
+    )
+
+    return APIResponse(
+        success=True,
+        message="Department created",
+        data={
+            "id": dept.id,
+            "name": dept.name,
+            "organization_id": dept.organization_id,
+            "is_active": bool(dept.is_active),
+        },
+    )
+
+
+@app.get("/admin/audit", response_model=APIResponse)
+def list_audit_logs(
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("users:update_role")),
+):
+    rows = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).all()
+    data = [
+        {
+            "id": row.id,
+            "actor_user_id": row.actor_user_id,
+            "action": row.action,
+            "target_type": row.target_type,
+            "target_id": row.target_id,
+            "details": json.loads(row.details) if row.details else {},
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+        }
+        for row in rows
+    ]
+    return APIResponse(success=True, message="Audit logs", data=data)
 
 # Health check endpoint
 @app.get("/health")

@@ -40,6 +40,20 @@ class UserSettingsUpdate(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: str = Field(..., description="New role for the target user")
 
+
+class OrganizationCreate(BaseModel):
+    name: str = Field(..., min_length=2, description="Organization display name")
+    code: Optional[str] = Field(None, description="Optional short organization code")
+
+
+class DepartmentCreate(BaseModel):
+    name: str = Field(..., min_length=2, description="Department name")
+    organization_id: Optional[int] = Field(None, ge=1, description="Parent organization id")
+
+
+class RolePermissionsUpdate(BaseModel):
+    permissions: List[str] = Field(default_factory=list, description="Allowed permissions for role")
+
 # Response Models
 class FeedbackResponse(BaseModel):
     id: int

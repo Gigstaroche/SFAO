@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
@@ -38,7 +38,63 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
     role = Column(String, default="user")
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String, nullable=False, unique=True)
+    code = Column(String, nullable=True, unique=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Department(Base):
+    __tablename__ = "departments"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    role = Column(String, nullable=False, index=True)
+    permission = Column(String, nullable=False, index=True)
+    is_allowed = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    actor_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    action = Column(String, nullable=False, index=True)
+    target_type = Column(String, nullable=True)
+    target_id = Column(String, nullable=True)
+    details = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class NotificationPreference(Base):
+    __tablename__ = "notification_preferences"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    email_enabled = Column(Boolean, default=True)
+    in_app_enabled = Column(Boolean, default=True)
+    high_urgency_only = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 class UserSettings(Base):
     __tablename__ = "user_settings"
@@ -55,6 +111,7 @@ class UserSettings(Base):
 def create_tables():
     Base.metadata.create_all(bind=engine)
     ensure_user_settings_schema()
+    ensure_governance_schema()
 
 def ensure_user_settings_schema():
     """Backfill user_settings columns for existing SQLite databases."""
@@ -79,6 +136,41 @@ def ensure_user_settings_schema():
             connection.exec_driver_sql("ALTER TABLE user_settings ADD COLUMN notifications_enabled BOOLEAN DEFAULT 1")
         if "updated_at" not in columns:
             connection.exec_driver_sql("ALTER TABLE user_settings ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+
+        connection.commit()
+
+
+def ensure_governance_schema():
+    """Backfill governance tables/columns for existing SQLite databases."""
+    with engine.connect() as connection:
+        users_table_exists = connection.exec_driver_sql(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
+        ).fetchone()
+
+        if users_table_exists:
+            rows = connection.exec_driver_sql("PRAGMA table_info(users)").fetchall()
+            columns = {row[1] for row in rows}
+            if "organization_id" not in columns:
+                connection.exec_driver_sql("ALTER TABLE users ADD COLUMN organization_id INTEGER")
+            if "department_id" not in columns:
+                connection.exec_driver_sql("ALTER TABLE users ADD COLUMN department_id INTEGER")
+
+        # Create lightweight indexes if they do not exist.
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_users_organization_id ON users(organization_id)"
+        )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_users_department_id ON users(department_id)"
+        )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_role_permissions_role ON role_permissions(role)"
+        )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_role_permissions_permission ON role_permissions(permission)"
+        )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_audit_logs_created_at ON audit_logs(created_at)"
+        )
 
         connection.commit()
 

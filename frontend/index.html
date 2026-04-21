@@ -575,6 +575,32 @@
       border-color: var(--line);
     }
 
+    .notif-btn {
+      position: relative;
+    }
+
+    .notif-count {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .notif-count.show {
+      display: inline-flex;
+    }
+
     .status-pill {
       display: inline-flex;
       align-items: center;
@@ -955,6 +981,75 @@
       animation: reveal 180ms ease;
     }
 
+    .notification-panel {
+      position: absolute;
+      right: 4.6rem;
+      top: 4.1rem;
+      width: min(360px, calc(100vw - 2rem));
+      border-radius: 0.9rem;
+      border: 1px solid rgba(95, 117, 197, 0.35);
+      background: rgba(16, 23, 49, 0.98);
+      box-shadow: var(--shadow);
+      padding: 0.6rem;
+      display: none;
+      z-index: 50;
+    }
+
+    [data-theme='light'] .notification-panel {
+      background: rgba(255, 255, 255, 0.99);
+      border-color: var(--line);
+    }
+
+    .notification-panel.open {
+      display: block;
+      animation: reveal 180ms ease;
+    }
+
+    .notification-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      margin-bottom: 0.55rem;
+      padding-bottom: 0.45rem;
+      border-bottom: 1px solid rgba(95, 117, 197, 0.25);
+    }
+
+    .notification-list {
+      display: grid;
+      gap: 0.45rem;
+      max-height: 300px;
+      overflow: auto;
+      padding-right: 0.2rem;
+    }
+
+    .notification-item {
+      border: 1px solid rgba(95, 117, 197, 0.22);
+      border-radius: 0.75rem;
+      background: rgba(17, 23, 48, 0.75);
+      padding: 0.58rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    [data-theme='light'] .notification-item {
+      background: rgba(255, 255, 255, 0.96);
+      border-color: var(--line);
+    }
+
+    .notification-item.unread {
+      border-color: rgba(255, 107, 138, 0.45);
+      box-shadow: inset 3px 0 0 rgba(255, 107, 138, 0.75);
+    }
+
+    .notification-meta {
+      font-size: 0.69rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 0.35rem;
+    }
+
     .menu-item {
       width: 100%;
       border: 0;
@@ -1301,6 +1396,10 @@
           <button id="theme-toggle" class="icon-btn" title="Toggle theme">
             <i id="theme-icon" class="fa-solid fa-moon"></i>
           </button>
+          <button id="notification-trigger" class="icon-btn notif-btn" title="Open notifications">
+            <i class="fa-regular fa-bell"></i>
+            <span id="notif-count" class="notif-count">0</span>
+          </button>
           <button id="profile-trigger" class="profile-trigger" title="Open profile menu">
             <span class="avatar" id="avatar-initials">FL</span>
             <span class="text-xs font-bold" id="user-name-display">Felix</span>
@@ -1316,6 +1415,19 @@
         </div>
         <button class="menu-item" id="open-profile-settings"><i class="fa-solid fa-user-gear"></i>Profile settings</button>
         <button class="menu-item" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
+      </div>
+
+      <div id="notification-panel" class="notification-panel">
+        <div class="notification-head">
+          <div>
+            <p class="text-sm font-bold m-0">Notifications</p>
+            <p id="notification-summary" class="muted m-0">No active alerts</p>
+          </div>
+          <button id="mark-notifications-read" class="btn" type="button">Mark read</button>
+        </div>
+        <div id="notification-list" class="notification-list">
+          <p class="muted">No active alerts right now.</p>
+        </div>
       </div>
 
       <div class="hero">
@@ -1498,6 +1610,7 @@
     let refreshTimer = null;
     let currentUser = null;
     let latestFeed = [];
+    let latestNotifications = [];
     let authMode = 'login';
     let codeCooldownSeconds = 0;
     let codeCooldownTimer = null;
@@ -1512,6 +1625,7 @@
       channel: 'all',
       query: ''
     };
+    const NOTIFICATION_READ_KEY = 'sfao.notifications.lastReadAt';
 
     const defaultProfile = {
       name: 'Felix',
@@ -1947,6 +2061,100 @@
       refreshTimer = setInterval(refresh, intervalMs);
     }
 
+    function getNotificationTimestamp(item) {
+      const ts = Date.parse(item?.created_at || '');
+      return Number.isFinite(ts) ? ts : Date.now();
+    }
+
+    function deriveNotifications(feed) {
+      return (feed || [])
+        .filter((item) => {
+          const status = (item?.status || 'New').toLowerCase();
+          const unresolved = status !== 'resolved';
+          const highUrgency = (item?.urgency || '').toLowerCase() === 'high';
+          const negative = (item?.sentiment || '').toLowerCase() === 'negative';
+          return highUrgency || (negative && unresolved);
+        })
+        .sort((a, b) => getNotificationTimestamp(b) - getNotificationTimestamp(a))
+        .slice(0, 12)
+        .map((item) => ({
+          id: item.id,
+          source: item.source || 'Unknown source',
+          category: item.category || 'General',
+          sentiment: item.sentiment || 'Unknown',
+          urgency: item.urgency || 'Low',
+          status: item.status || 'New',
+          text: item.text || '',
+          created_at: item.created_at,
+          timestamp: getNotificationTimestamp(item)
+        }));
+    }
+
+    function getLastReadTimestamp() {
+      const raw = Number(localStorage.getItem(NOTIFICATION_READ_KEY) || 0);
+      return Number.isFinite(raw) ? raw : 0;
+    }
+
+    function toggleNotificationPanel(forceOpen = null) {
+      const panel = document.getElementById('notification-panel');
+      const shouldOpen = forceOpen === null ? !panel.classList.contains('open') : forceOpen;
+      panel.classList.toggle('open', shouldOpen);
+      if (shouldOpen) {
+        toggleProfileMenu(false);
+      }
+    }
+
+    function markNotificationsRead() {
+      localStorage.setItem(NOTIFICATION_READ_KEY, String(Date.now()));
+      renderNotifications(latestNotifications);
+      showToast('Notifications marked as read');
+    }
+
+    function renderNotifications(notifications) {
+      const listEl = document.getElementById('notification-list');
+      const countEl = document.getElementById('notif-count');
+      const summaryEl = document.getElementById('notification-summary');
+      const lastRead = getLastReadTimestamp();
+      const unreadCount = notifications.filter((item) => item.timestamp > lastRead).length;
+
+      if (unreadCount > 0) {
+        countEl.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+        countEl.classList.add('show');
+      } else {
+        countEl.textContent = '0';
+        countEl.classList.remove('show');
+      }
+
+      summaryEl.textContent = notifications.length
+        ? `${unreadCount} unread · ${notifications.length} active alerts`
+        : 'No active alerts';
+
+      if (!notifications.length) {
+        listEl.innerHTML = '<p class="muted">No active alerts right now.</p>';
+        return;
+      }
+
+      listEl.innerHTML = notifications.map((item) => {
+        const unreadClass = item.timestamp > lastRead ? 'unread' : '';
+        const preview = item.text.length > 130 ? `${item.text.slice(0, 127)}...` : item.text;
+        const createdAt = new Date(item.created_at || Date.now()).toLocaleString();
+        return `
+          <article class="notification-item ${unreadClass}">
+            <div class="flex items-center gap-2">
+              <span class="${sentimentClass(item.sentiment)}">${item.sentiment}</span>
+              <span class="badge" style="color:#ffcfd9; border-color:rgba(255,107,138,0.34); background:rgba(255,107,138,0.1);">${item.urgency}</span>
+              <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1);">${item.source}</span>
+            </div>
+            <p class="text-sm" style="margin:0; color:var(--text);">${preview}</p>
+            <div class="notification-meta">
+              <span>${item.category} · ${item.status}</span>
+              <span>${createdAt}</span>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
     function toggleProfileMenu(forceOpen = null) {
       const menu = document.getElementById('profile-menu');
       const shouldOpen = forceOpen === null ? !menu.classList.contains('open') : forceOpen;
@@ -2069,6 +2277,8 @@
       startAutoRefresh(profile.refreshInterval);
 
       document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+      document.getElementById('notification-trigger').addEventListener('click', () => toggleNotificationPanel());
+      document.getElementById('mark-notifications-read').addEventListener('click', markNotificationsRead);
       document.getElementById('profile-trigger').addEventListener('click', () => toggleProfileMenu());
       document.getElementById('open-profile-settings').addEventListener('click', openSettings);
       document.getElementById('logout-btn').addEventListener('click', logoutUser);
@@ -2079,8 +2289,13 @@
       document.addEventListener('click', (event) => {
         const menu = document.getElementById('profile-menu');
         const trigger = document.getElementById('profile-trigger');
+        const notificationPanel = document.getElementById('notification-panel');
+        const notificationTrigger = document.getElementById('notification-trigger');
         if (!menu.contains(event.target) && !trigger.contains(event.target)) {
           toggleProfileMenu(false);
+        }
+        if (!notificationPanel.contains(event.target) && !notificationTrigger.contains(event.target)) {
+          toggleNotificationPanel(false);
         }
       });
 
@@ -2368,15 +2583,19 @@
         const summary = await summaryRes.json();
         const feed = await feedRes.json();
         latestFeed = feed || [];
+        latestNotifications = deriveNotifications(latestFeed);
 
         updateCards(summary);
         updateVisuals(summary);
         populateFilterOptions(summary);
         renderFilteredFeed();
+        renderNotifications(latestNotifications);
       } catch (err) {
         console.error(err);
         document.getElementById('last-updated').textContent = 'Last update: backend offline';
         document.getElementById('feed').innerHTML = '<p class="muted" style="padding:0.8rem; color:#ffb3c5;">Could not reach API on localhost:8000.</p>';
+        latestNotifications = [];
+        renderNotifications(latestNotifications);
       }
     }
 

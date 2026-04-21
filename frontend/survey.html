@@ -137,6 +137,10 @@
           <label class="block text-sm text-gray-300 mb-1">Your Feedback <span class="text-red-400">*</span></label>
           <textarea id="feedback-text" rows="4" required placeholder="Share your thoughts, issues, or suggestions..."
             class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none"></textarea>
+          <div class="flex items-center justify-between text-xs mt-2">
+            <span id="draft-state" class="text-muted">Draft not saved yet</span>
+            <span id="feedback-count" class="text-muted">0/2000</span>
+          </div>
         </div>
 
         <!-- Submit -->
@@ -153,6 +157,9 @@
 
   <script>
     const API = window.location.origin;
+    const SURVEY_DRAFT_KEY = 'sfao-survey-draft';
+    const MAX_FEEDBACK_CHARS = 2000;
+    const MIN_FEEDBACK_CHARS = 20;
     let selectedRating = 0;
 
     // Theme Management
@@ -184,39 +191,140 @@
           s.classList.toggle('text-yellow-400', i < selectedRating);
           s.classList.toggle('text-gray-600', i >= selectedRating);
         });
+        saveSurveyDraft();
       });
     });
 
+    function getSurveyFormData() {
+      return {
+        name: document.getElementById('name').value.trim(),
+        department: document.getElementById('department').value,
+        rating: Number(document.getElementById('rating').value || 0),
+        text: document.getElementById('feedback-text').value.trim(),
+      };
+    }
+
+    function validateSurveyForm(data) {
+      if (!data.department) return 'Please select your department.';
+      if (data.rating < 1 || data.rating > 5) return 'Please select a star rating.';
+      if (!data.text) return 'Please enter your feedback.';
+      if (data.text.length < MIN_FEEDBACK_CHARS) {
+        return `Please provide at least ${MIN_FEEDBACK_CHARS} characters so we can understand your feedback.`;
+      }
+      if (data.text.length > MAX_FEEDBACK_CHARS) {
+        return `Feedback is too long. Please keep it under ${MAX_FEEDBACK_CHARS} characters.`;
+      }
+      return null;
+    }
+
+    function updateFeedbackCounter() {
+      const text = document.getElementById('feedback-text').value || '';
+      const countEl = document.getElementById('feedback-count');
+      countEl.textContent = `${text.length}/${MAX_FEEDBACK_CHARS}`;
+      countEl.classList.toggle('text-red-400', text.length > MAX_FEEDBACK_CHARS);
+      countEl.classList.toggle('text-muted', text.length <= MAX_FEEDBACK_CHARS);
+    }
+
+    function updateDraftState(message) {
+      document.getElementById('draft-state').textContent = message;
+    }
+
+    function saveSurveyDraft() {
+      const draft = getSurveyFormData();
+      localStorage.setItem(SURVEY_DRAFT_KEY, JSON.stringify({
+        ...draft,
+        savedAt: new Date().toISOString()
+      }));
+      updateDraftState('Draft saved locally');
+    }
+
+    function clearSurveyDraft() {
+      localStorage.removeItem(SURVEY_DRAFT_KEY);
+      updateDraftState('Draft cleared');
+    }
+
+    function restoreSurveyDraft() {
+      const raw = localStorage.getItem(SURVEY_DRAFT_KEY);
+      if (!raw) return;
+
+      try {
+        const draft = JSON.parse(raw);
+        if (draft.name) document.getElementById('name').value = draft.name;
+        if (draft.department) document.getElementById('department').value = draft.department;
+        if (draft.text) document.getElementById('feedback-text').value = draft.text;
+
+        const rating = Number(draft.rating || 0);
+        if (rating >= 1 && rating <= 5) {
+          selectedRating = rating;
+          document.getElementById('rating').value = rating;
+          document.querySelectorAll('.star').forEach((s, i) => {
+            s.classList.toggle('text-yellow-400', i < rating);
+            s.classList.toggle('text-gray-600', i >= rating);
+          });
+        }
+
+        updateDraftState('Draft restored');
+      } catch (_) {
+        localStorage.removeItem(SURVEY_DRAFT_KEY);
+        updateDraftState('Draft unavailable');
+      }
+    }
+
+    function initSurveyFeatureInputs() {
+      ['name', 'department', 'feedback-text'].forEach((id) => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => {
+          if (id === 'feedback-text') updateFeedbackCounter();
+          saveSurveyDraft();
+        });
+      });
+
+      restoreSurveyDraft();
+      updateFeedbackCounter();
+    }
+
     document.getElementById('survey-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const resultEl = document.getElementById('result');
+      const formData = getSurveyFormData();
+      const validationError = validateSurveyForm(formData);
+      if (validationError) return showResult(validationError, 'error');
 
-      const department = document.getElementById('department').value;
-      const rating     = parseInt(document.getElementById('rating').value);
-      const text       = document.getElementById('feedback-text').value.trim();
-
-      if (!department) return showResult('Please select your department.', 'error');
-      if (rating < 1)  return showResult('Please select a star rating.', 'error');
-      if (!text)       return showResult('Please enter your feedback.', 'error');
+      const submitButton = e.target.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Submitting...';
 
       try {
         const res = await fetch(`${API}/survey`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: document.getElementById('name').value || 'Anonymous', department, rating, text })
+          body: JSON.stringify({
+            name: formData.name || 'Anonymous',
+            department: formData.department,
+            rating: formData.rating,
+            text: formData.text
+          })
         });
         const data = await res.json();
         if (res.ok) {
           const result = data?.data || {};
-          showResult(`✓ Thank you! Your feedback was recorded as "${result.sentiment || 'N/A'}" (${result.category || 'General'}).`, 'success');
+          const submissionId = result.id ? `#${result.id}` : 'generated';
+          showResult(`Submitted successfully. Ref: ${submissionId} | Sentiment: ${result.sentiment || 'N/A'} | Category: ${result.category || 'General'}.`, 'success');
           e.target.reset();
           selectedRating = 0;
-          document.querySelectorAll('.star').forEach(s => s.classList.replace('text-yellow-400', 'text-gray-600'));
+          document.querySelectorAll('.star').forEach((s) => {
+            s.classList.remove('text-yellow-400');
+            s.classList.add('text-gray-600');
+          });
+          clearSurveyDraft();
+          updateFeedbackCounter();
         } else {
           showResult(data.detail || 'Submission failed.', 'error');
         }
       } catch {
         showResult('Cannot reach server. Please ensure the backend is running.', 'error');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit Feedback';
       }
     });
 
@@ -229,6 +337,7 @@
 
     // Initialize theme
     initTheme();
+    initSurveyFeatureInputs();
   </script>
 </body>
 </html>

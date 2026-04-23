@@ -1374,11 +1374,11 @@
         <a class="nav-link" href="/portal/survey.html"><i class="fa-solid fa-clipboard-list"></i>Survey</a>
       </div>
 
-      <div class="nav-group">
+      <div class="nav-group" id="nav-overview-group">
         <p class="nav-title">Overview</p>
-        <a class="nav-link" id="nav-alerts" href="#feed-panel"><i class="fa-regular fa-bell"></i>Alerts</a>
-        <a class="nav-link" id="nav-categories" href="#category-panel"><i class="fa-solid fa-layer-group"></i>Categories</a>
-        <a class="nav-link" id="nav-channels" href="#source-panel"><i class="fa-solid fa-globe"></i>Channels</a>
+        <a class="nav-link nav-module-alerts" id="nav-alerts" href="#feed-panel"><i class="fa-regular fa-bell"></i>Alerts</a>
+        <a class="nav-link nav-module-categories" id="nav-categories" href="#category-panel"><i class="fa-solid fa-layer-group"></i>Categories</a>
+        <a class="nav-link nav-module-channels" id="nav-channels" href="#source-panel"><i class="fa-solid fa-globe"></i>Channels</a>
       </div>
     </aside>
 
@@ -1412,6 +1412,7 @@
         <div class="px-2 py-2 border-b" style="border-color:rgba(95,117,197,0.25);">
           <p id="profile-menu-name" class="text-sm font-bold m-0">Felix</p>
           <p id="profile-menu-role" class="muted m-0">Executive Admin</p>
+          <p id="profile-menu-dept" class="muted m-0" style="font-size:0.75rem;margin-top:0.25rem;"></p>
         </div>
         <button class="menu-item" id="open-profile-settings"><i class="fa-solid fa-user-gear"></i>Profile settings</button>
         <button class="menu-item" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
@@ -1627,6 +1628,15 @@
     };
     const NOTIFICATION_READ_KEY = 'sfao.notifications.lastReadAt';
 
+    const ROLE_MODULE_ACCESS = {
+      'super_admin': ['dashboard', 'survey', 'alerts', 'categories', 'channels'],
+      'survey_admin': ['dashboard', 'survey', 'alerts', 'categories', 'channels'],
+      'survey_manager': ['dashboard', 'survey', 'alerts', 'categories', 'channels'],
+      'analyst': ['dashboard', 'alerts', 'categories', 'channels'],
+      'department_resolver': ['dashboard', 'alerts'],
+      'employee': ['dashboard', 'survey']
+    };
+
     const defaultProfile = {
       name: 'Felix',
       email: 'felix@sfao.local',
@@ -1666,6 +1676,24 @@
       if (!value.includes('@')) return false;
       const domain = value.split('@').pop();
       return domain && !PUBLIC_EMAIL_DOMAINS.has(domain);
+    }
+
+    function updateMenuVisibility(userRole) {
+      const role = (userRole || 'employee').toLowerCase().replace(/[\s-]+/g, '_');
+      const allowedModules = ROLE_MODULE_ACCESS[role] || ROLE_MODULE_ACCESS['employee'];
+      
+      const moduleMap = {
+        'alerts': '.nav-module-alerts',
+        'categories': '.nav-module-categories',
+        'channels': '.nav-module-channels'
+      };
+      
+      Object.entries(moduleMap).forEach(([module, selector]) => {
+        const elem = document.querySelector(selector);
+        if (elem) {
+          elem.style.display = allowedModules.includes(module) ? '' : 'none';
+        }
+      });
     }
 
     function showToast(message) {
@@ -2033,6 +2061,16 @@
       document.getElementById('user-name-display').textContent = profile.name;
       document.getElementById('profile-menu-name').textContent = profile.name;
       document.getElementById('profile-menu-role').textContent = profile.role;
+      
+      const deptElem = document.getElementById('profile-menu-dept');
+      if (profile.department) {
+        deptElem.textContent = `📋 ${profile.department}`;
+        deptElem.style.display = '';
+      } else {
+        deptElem.style.display = 'none';
+      }
+      
+      updateMenuVisibility(profile.role);
     }
 
     function fillProfileForm(profile) {
@@ -2262,6 +2300,12 @@
       currentUser = getSessionUser();
 
       let profile = loadProfileSettings();
+      if (currentUser?.role) {
+        profile.role = currentUser.role;
+      }
+      if (currentUser?.department) {
+        profile.department = currentUser.department;
+      }
 
       if (currentUser?.id) {
         try {

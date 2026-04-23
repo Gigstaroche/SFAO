@@ -28,6 +28,9 @@ class Feedback(Base):
     category = Column(String, nullable=False)
     urgency = Column(String, default="Low")
     status = Column(String, default="New")
+    department_tag = Column(String, nullable=True, index=True)
+    routing_status = Column(String, default="pending", index=True)
+    routing_confidence = Column(Float, default=0.0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class User(Base):
@@ -112,6 +115,7 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
     ensure_user_settings_schema()
     ensure_governance_schema()
+    ensure_feedback_routing_schema()
 
 def ensure_user_settings_schema():
     """Backfill user_settings columns for existing SQLite databases."""
@@ -170,6 +174,36 @@ def ensure_governance_schema():
         )
         connection.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS ix_audit_logs_created_at ON audit_logs(created_at)"
+        )
+
+        connection.commit()
+
+
+def ensure_feedback_routing_schema():
+    """Backfill feedback routing columns for existing SQLite databases."""
+    with engine.connect() as connection:
+        feedback_table_exists = connection.exec_driver_sql(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='feedback'"
+        ).fetchone()
+
+        if not feedback_table_exists:
+            return
+
+        rows = connection.exec_driver_sql("PRAGMA table_info(feedback)").fetchall()
+        columns = {row[1] for row in rows}
+
+        if "department_tag" not in columns:
+            connection.exec_driver_sql("ALTER TABLE feedback ADD COLUMN department_tag VARCHAR")
+        if "routing_status" not in columns:
+            connection.exec_driver_sql("ALTER TABLE feedback ADD COLUMN routing_status VARCHAR DEFAULT 'pending'")
+        if "routing_confidence" not in columns:
+            connection.exec_driver_sql("ALTER TABLE feedback ADD COLUMN routing_confidence REAL DEFAULT 0")
+
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_feedback_department_tag ON feedback(department_tag)"
+        )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_feedback_routing_status ON feedback(routing_status)"
         )
 
         connection.commit()

@@ -40,6 +40,18 @@
     </div>
 </div>
 
+<!-- Query History -->
+<div class="bg-white rounded-lg shadow-md mb-6">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">Recent Queries</h3>
+        <button onclick="clearQueryHistory()" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">Clear history</button>
+    </div>
+    <div class="p-6">
+        <div id="queryHistoryEmpty" class="text-sm text-gray-500">No saved queries yet. Run a query to add it here.</div>
+        <div id="queryHistoryList" class="space-y-2 hidden"></div>
+    </div>
+</div>
+
 <!-- Quick Queries -->
 <div class="bg-white rounded-lg shadow-md mb-6">
     <div class="px-6 py-4 border-b border-gray-200">
@@ -129,6 +141,60 @@
 
 <script>
 let lastResults = [];
+const QUERY_HISTORY_KEY = 'sfao_query_history';
+const MAX_QUERY_HISTORY = 8;
+
+function getQueryHistory() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(QUERY_HISTORY_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveQueryHistory(query) {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+        return;
+    }
+
+    const history = getQueryHistory().filter(item => item !== trimmedQuery);
+    history.unshift(trimmedQuery);
+    localStorage.setItem(QUERY_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_QUERY_HISTORY)));
+    renderQueryHistory();
+}
+
+function clearQueryHistory() {
+    localStorage.removeItem(QUERY_HISTORY_KEY);
+    renderQueryHistory();
+    showNotification('Query history cleared', 'success');
+}
+
+function renderQueryHistory() {
+    const history = getQueryHistory();
+    const emptyState = document.getElementById('queryHistoryEmpty');
+    const historyList = document.getElementById('queryHistoryList');
+
+    if (!history.length) {
+        emptyState.classList.remove('hidden');
+        historyList.classList.add('hidden');
+        historyList.innerHTML = '';
+        return;
+    }
+
+    emptyState.classList.add('hidden');
+    historyList.classList.remove('hidden');
+    historyList.innerHTML = history.map(query => `
+        <button
+            type="button"
+            onclick='loadQuery(${JSON.stringify(query)})'
+            class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded border transition-colors"
+        >
+            ${query.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+        </button>
+    `).join('');
+}
 
 function loadQuery(query) {
     document.getElementById('queryInput').value = query;
@@ -229,6 +295,7 @@ async function executeQuery() {
         
         if (result.success) {
             showResults(result.data);
+            saveQueryHistory(query);
             showNotification('Query executed successfully!', 'success');
         } else {
             showError(result.error);
@@ -277,5 +344,7 @@ document.getElementById('queryInput').addEventListener('keydown', function(event
         executeQuery();
     }
 });
+
+renderQueryHistory();
 </script>
 {% endblock %}

@@ -16,6 +16,12 @@ class SurveyCreate(BaseModel):
 class StatusUpdate(BaseModel):
     status: str = Field(..., description="New status (New, In-Progress, Resolved)")
 
+
+class FeedbackRouteUpdate(BaseModel):
+    department_tag: str = Field(..., min_length=2, description="Target department for this feedback")
+    routing_status: str = Field("assigned", description="Routing state: assigned or needs-triage")
+    routing_confidence: Optional[float] = Field(None, ge=0, le=1, description="Confidence score from 0 to 1")
+
 class UserCreate(BaseModel):
     name: str = Field(..., description="User's full name")
     email: str = Field(..., description="User's email address")
@@ -64,6 +70,9 @@ class FeedbackResponse(BaseModel):
     category: str
     urgency: str
     status: str
+    department_tag: Optional[str] = None
+    routing_status: Optional[str] = None
+    routing_confidence: Optional[float] = None
     created_at: datetime
 
     class Config:

@@ -33,7 +33,7 @@ from models import (
 from schemas import (
     FeedbackCreate, SurveyCreate, StatusUpdate, UserCreate, UserLogin, EmailCodeRequest,
     UserSettingsUpdate, UserSettingsResponse, UserRoleUpdate,
-    OrganizationCreate, DepartmentCreate, RolePermissionsUpdate,
+    OrganizationCreate, DepartmentCreate, RolePermissionsUpdate, FeedbackRouteUpdate,
     FeedbackResponse, UserResponse, SummaryResponse, APIResponse
 )
 
@@ -78,6 +78,15 @@ ROLE_PERMISSIONS = {
 }
 
 DYNAMIC_ROLE_PERMISSIONS: Dict[str, Set[str]] = {}
+
+DEPARTMENT_ROUTING_RULES = {
+    "Customer Care": {"customer", "call", "support", "complaint", "service"},
+    "Network Ops": {"network", "signal", "outage", "coverage", "latency", "downtime"},
+    "IT": {"system", "login", "portal", "error", "bug", "api", "integration"},
+    "Finance": {"billing", "invoice", "payment", "charge", "airtime", "refund", "mpesa", "m-pesa"},
+    "HR": {"employee", "hr", "leave", "benefit", "policy", "manager"},
+    "Product": {"feature", "app", "ux", "experience", "roadmap", "enhancement"},
+}
 
 PUBLIC_EMAIL_DOMAINS = {
     "gmail.com",
@@ -380,9 +389,72 @@ def require_permission(permission: str):
 
     return _guard
 
+
+def normalize_department_tag(value: Optional[str]) -> Optional[str]:
+    cleaned = (value or "").strip()
+    return cleaned if cleaned else None
+
+
+def classify_department_for_feedback(
+    text: str,
+    source: str,
+    category: str,
+    preferred_department: Optional[str] = None,
+) -> dict:
+    preferred = normalize_department_tag(preferred_department)
+    if preferred:
+        return {
+            "department_tag": preferred,
+            "routing_status": "assigned",
+            "routing_confidence": 0.95,
+        }
+
+    haystack = f"{text} {source} {category}".lower()
+    top_department = None
+    top_hits = 0
+
+    for department, keywords in DEPARTMENT_ROUTING_RULES.items():
+        hits = sum(1 for keyword in keywords if keyword in haystack)
+        if hits > top_hits:
+            top_hits = hits
+            top_department = department
+
+    if not top_department:
+        return {
+            "department_tag": "Triage Desk",
+            "routing_status": "needs-triage",
+            "routing_confidence": 0.35,
+        }
+
+    confidence = min(0.95, 0.45 + (top_hits * 0.1))
+    return {
+        "department_tag": top_department,
+        "routing_status": "assigned" if confidence >= 0.55 else "needs-triage",
+        "routing_confidence": confidence,
+    }
+
+
+def get_user_department_name(db: Session, user: User) -> Optional[str]:
+    if not user.department_id:
+        return None
+    department = db.query(Department).filter(Department.id == user.department_id).first()
+    return department.name if department else None
+
 # --- Database Functions ---
-def create_feedback_orm(db: Session, feedback_data: FeedbackCreate, analysis_result: dict) -> Feedback:
+def create_feedback_orm(
+    db: Session,
+    feedback_data: FeedbackCreate,
+    analysis_result: dict,
+    preferred_department: Optional[str] = None,
+) -> Feedback:
     """Create feedback using SQLAlchemy ORM"""
+    routing = classify_department_for_feedback(
+        text=feedback_data.text,
+        source=feedback_data.source,
+        category=analysis_result["category"],
+        preferred_department=preferred_department,
+    )
+
     db_feedback = Feedback(
         source=feedback_data.source,
         text=feedback_data.text,
@@ -391,6 +463,9 @@ def create_feedback_orm(db: Session, feedback_data: FeedbackCreate, analysis_res
         category=analysis_result["category"],
         urgency=analysis_result["urgency"],
         status="New",
+        department_tag=routing["department_tag"],
+        routing_status=routing["routing_status"],
+        routing_confidence=routing["routing_confidence"],
         created_at=datetime.now()
     )
     db.add(db_feedback)
@@ -618,7 +693,7 @@ def submit_survey(survey: SurveyCreate, db: Session = Depends(get_db)):
             analysis["sentiment"] = "Positive"
         
         # Create feedback using SQLAlchemy ORM
-        db_feedback = create_feedback_orm(db, feedback_data, analysis)
+        db_feedback = create_feedback_orm(db, feedback_data, analysis, survey.department)
         
         return APIResponse(
             success=True,
@@ -755,6 +830,83 @@ def update_feedback_status(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update status: {str(e)}")
+
+
+@app.get("/operations/queue", response_model=List[FeedbackResponse])
+def get_operations_queue(
+    department: Optional[str] = Query(default=None),
+    routing_status: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("feedback:view")),
+):
+    """Department operations queue with role-aware filtering."""
+    effective_department = normalize_department_tag(department)
+    user_department = get_user_department_name(db, current_user)
+    role = normalize_role(current_user.role)
+
+    if role == "employee":
+        if not user_department:
+            raise HTTPException(status_code=403, detail="Employee account has no assigned department")
+        effective_department = user_department
+
+    query = db.query(Feedback)
+    if effective_department:
+        query = query.filter(Feedback.department_tag == effective_department)
+    if routing_status:
+        query = query.filter(Feedback.routing_status == routing_status)
+
+    feedbacks = query.order_by(Feedback.created_at.desc()).limit(limit).all()
+    return [FeedbackResponse.from_orm(item) for item in feedbacks]
+
+
+@app.put("/operations/route/{feedback_id}", response_model=APIResponse)
+def route_feedback_item(
+    feedback_id: int,
+    payload: FeedbackRouteUpdate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("feedback:update_status")),
+):
+    """Manually update feedback routing fields for resolver operations."""
+    feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+
+    valid_routing_status = {"assigned", "needs-triage"}
+    if payload.routing_status not in valid_routing_status:
+        raise HTTPException(status_code=400, detail="routing_status must be assigned or needs-triage")
+
+    feedback.department_tag = normalize_department_tag(payload.department_tag)
+    feedback.routing_status = payload.routing_status
+    if payload.routing_confidence is not None:
+        feedback.routing_confidence = float(payload.routing_confidence)
+
+    db.commit()
+    db.refresh(feedback)
+
+    record_audit_event(
+        db,
+        actor,
+        "feedback.route.update",
+        "feedback",
+        str(feedback.id),
+        {
+            "department_tag": feedback.department_tag,
+            "routing_status": feedback.routing_status,
+            "routing_confidence": feedback.routing_confidence,
+        },
+    )
+
+    return APIResponse(
+        success=True,
+        message="Feedback routing updated",
+        data={
+            "id": feedback.id,
+            "department_tag": feedback.department_tag,
+            "routing_status": feedback.routing_status,
+            "routing_confidence": feedback.routing_confidence,
+        },
+    )
 
 
 @app.post("/users/register", response_model=APIResponse)

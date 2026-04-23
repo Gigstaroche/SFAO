@@ -36,10 +36,17 @@ def get_db():
 
 class DatabaseInspector:
     """Database inspection utilities"""
+
+    @staticmethod
+    def validate_table_name(table_name: str) -> None:
+        """Reject unknown table names before using them in raw SQL."""
+        if table_name not in DatabaseInspector.get_all_tables():
+            raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found")
     
     @staticmethod
     def get_table_info(table_name: str) -> Dict[str, Any]:
         """Get detailed information about a table"""
+        DatabaseInspector.validate_table_name(table_name)
         inspector = inspect(engine)
         columns = inspector.get_columns(table_name)
         indexes = inspector.get_indexes(table_name)
@@ -59,10 +66,10 @@ class DatabaseInspector:
         return inspector.get_table_names()
     
     @staticmethod
-    def execute_query(query: str, db: Session) -> List[Dict]:
+    def execute_query(query: str, db: Session, params: Dict[str, Any] | None = None) -> List[Dict]:
         """Execute raw SQL query and return results"""
         try:
-            result = db.execute(text(query))
+            result = db.execute(text(query), params or {})
             columns = result.keys()
             rows = result.fetchall()
             
@@ -99,22 +106,37 @@ async def dashboard(request: Request):
     })
 
 @studio_app.get("/table/{table_name}", response_class=HTMLResponse)
-async def view_table(request: Request, table_name: str, page: int = 1, limit: int = 50):
+async def view_table(request: Request, table_name: str, page: int = 1, limit: int = 50, search: str = ""):
     """View table data with pagination"""
     offset = (page - 1) * limit
+    search_term = search.strip()
     
     db = next(get_db())
     try:
         # Get table structure
         table_info = db_inspector.get_table_info(table_name)
+
+        searchable_columns = [
+            column["name"]
+            for column in table_info["columns"]
+            if str(column.get("type", "")).lower() not in {"blob", "binary"}
+        ]
+
+        search_clause = ""
+        query_params: Dict[str, Any] = {"limit": limit, "offset": offset}
+        if search_term and searchable_columns:
+            search_clause = " WHERE " + " OR ".join(
+                [f"CAST({column_name} AS TEXT) LIKE :search" for column_name in searchable_columns]
+            )
+            query_params["search"] = f"%{search_term}%"
         
         # Get data with pagination
-        data_query = f"SELECT * FROM {table_name} LIMIT {limit} OFFSET {offset}"
-        data = db_inspector.execute_query(data_query, db)
+        data_query = f"SELECT * FROM {table_name}{search_clause} LIMIT :limit OFFSET :offset"
+        data = db_inspector.execute_query(data_query, db, query_params)
         
         # Get total count
-        count_query = f"SELECT COUNT(*) as total FROM {table_name}"
-        total_result = db_inspector.execute_query(count_query, db)
+        count_query = f"SELECT COUNT(*) as total FROM {table_name}{search_clause}"
+        total_result = db_inspector.execute_query(count_query, db, {k: v for k, v in query_params.items() if k == "search"})
         total = total_result[0]["total"] if total_result else 0
         
         # Calculate pagination info
@@ -127,6 +149,7 @@ async def view_table(request: Request, table_name: str, page: int = 1, limit: in
             "data": data,
             "page": page,
             "limit": limit,
+            "search": search_term,
             "total": total,
             "total_pages": total_pages,
             "has_prev": page > 1,

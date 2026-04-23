@@ -99,6 +99,28 @@ class NotificationPreference(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+
+class Buyer(Base):
+    __tablename__ = "buyers"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    code = Column(String, nullable=True, unique=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BuyerDepartment(Base):
+    __tablename__ = "buyer_departments"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    buyer_id = Column(Integer, ForeignKey("buyers.id"), nullable=False, index=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False, index=True)
+    custom_name = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class UserSettings(Base):
     __tablename__ = "user_settings"
 

@@ -23,6 +23,8 @@ from models import (
     UserSettings,
     Organization,
     Department,
+    Buyer,
+    BuyerDepartment,
     RolePermission,
     AuditLog,
     NotificationPreference,
@@ -33,8 +35,8 @@ from models import (
 from schemas import (
     FeedbackCreate, SurveyCreate, StatusUpdate, UserCreate, UserLogin, EmailCodeRequest,
     UserSettingsUpdate, UserSettingsResponse, UserRoleUpdate,
-    OrganizationCreate, DepartmentCreate, RolePermissionsUpdate, FeedbackRouteUpdate,
-    FeedbackResponse, UserResponse, SummaryResponse, APIResponse
+    OrganizationCreate, DepartmentCreate, BuyerCreate, BuyerDepartmentCreate, RolePermissionsUpdate, FeedbackRouteUpdate,
+    FeedbackResponse, UserResponse, BuyerResponse, BuyerDepartmentResponse, SummaryResponse, APIResponse
 )
 
 VALID_ROLES = {
@@ -1287,6 +1289,146 @@ def create_department(
             "name": dept.name,
             "organization_id": dept.organization_id,
             "is_active": bool(dept.is_active),
+        },
+    )
+
+
+@app.get("/admin/buyers", response_model=APIResponse)
+def list_buyers(
+    organization_id: Optional[int] = Query(default=None, ge=1),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:view")),
+):
+    query = db.query(Buyer)
+    if organization_id:
+        query = query.filter(Buyer.organization_id == organization_id)
+
+    buyers = query.order_by(Buyer.name.asc()).all()
+    data = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "code": item.code,
+            "organization_id": item.organization_id,
+            "is_active": bool(item.is_active),
+        }
+        for item in buyers
+    ]
+    record_audit_event(db, actor, "buyer.list", "buyer", "all", {"count": len(data)})
+    return APIResponse(success=True, message="Buyers", data=data)
+
+
+@app.post("/admin/buyers", response_model=APIResponse)
+def create_buyer(
+    payload: BuyerCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:update_role")),
+):
+    name = payload.name.strip()
+    code = payload.code.strip().upper() if payload.code else None
+    org_id = payload.organization_id
+
+    if org_id:
+        org = db.query(Organization).filter(Organization.id == org_id).first()
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+
+    existing = db.query(Buyer).filter(Buyer.name.ilike(name)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Buyer already exists")
+
+    if code:
+        duplicate_code = db.query(Buyer).filter(Buyer.code == code).first()
+        if duplicate_code:
+            raise HTTPException(status_code=400, detail="Buyer code already exists")
+
+    buyer = Buyer(name=name, code=code, organization_id=org_id, is_active=True)
+    db.add(buyer)
+    db.commit()
+    db.refresh(buyer)
+
+    record_audit_event(db, actor, "buyer.create", "buyer", str(buyer.id), {"name": name, "code": code, "organization_id": org_id})
+
+    return APIResponse(
+        success=True,
+        message="Buyer created",
+        data={"id": buyer.id, "name": buyer.name, "code": buyer.code, "organization_id": buyer.organization_id, "is_active": bool(buyer.is_active)},
+    )
+
+
+@app.get("/admin/buyer-departments", response_model=APIResponse)
+def list_buyer_departments(
+    buyer_id: Optional[int] = Query(default=None, ge=1),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:view")),
+):
+    query = db.query(BuyerDepartment)
+    if buyer_id:
+        query = query.filter(BuyerDepartment.buyer_id == buyer_id)
+
+    buyer_depts = query.order_by(BuyerDepartment.id.asc()).all()
+    data = [
+        {
+            "id": item.id,
+            "buyer_id": item.buyer_id,
+            "department_id": item.department_id,
+            "custom_name": item.custom_name,
+            "is_active": bool(item.is_active),
+        }
+        for item in buyer_depts
+    ]
+    record_audit_event(db, actor, "buyer_department.list", "buyer_department", "all", {"count": len(data)})
+    return APIResponse(success=True, message="Buyer Departments", data=data)
+
+
+@app.post("/admin/buyer-departments", response_model=APIResponse)
+def create_buyer_department(
+    payload: BuyerDepartmentCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("users:update_role")),
+):
+    buyer_id = payload.buyer_id
+    dept_id = payload.department_id
+    custom_name = payload.custom_name.strip() if payload.custom_name else None
+
+    buyer = db.query(Buyer).filter(Buyer.id == buyer_id).first()
+    if not buyer:
+        raise HTTPException(status_code=404, detail="Buyer not found")
+
+    dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+
+    existing = db.query(BuyerDepartment).filter(
+        BuyerDepartment.buyer_id == buyer_id,
+        BuyerDepartment.department_id == dept_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Buyer department mapping already exists")
+
+    buyer_dept = BuyerDepartment(buyer_id=buyer_id, department_id=dept_id, custom_name=custom_name, is_active=True)
+    db.add(buyer_dept)
+    db.commit()
+    db.refresh(buyer_dept)
+
+    record_audit_event(
+        db,
+        actor,
+        "buyer_department.create",
+        "buyer_department",
+        str(buyer_dept.id),
+        {"buyer_id": buyer_id, "department_id": dept_id, "custom_name": custom_name},
+    )
+
+    return APIResponse(
+        success=True,
+        message="Buyer Department created",
+        data={
+            "id": buyer_dept.id,
+            "buyer_id": buyer_dept.buyer_id,
+            "department_id": buyer_dept.department_id,
+            "custom_name": buyer_dept.custom_name,
+            "is_active": bool(buyer_dept.is_active),
         },
     )
 

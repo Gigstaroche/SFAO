@@ -57,6 +57,18 @@ class DepartmentCreate(BaseModel):
     organization_id: Optional[int] = Field(None, ge=1, description="Parent organization id")
 
 
+class BuyerCreate(BaseModel):
+    name: str = Field(..., min_length=2, description="Buyer name")
+    code: Optional[str] = Field(None, description="Optional buyer code")
+    organization_id: Optional[int] = Field(None, ge=1, description="Parent organization id")
+
+
+class BuyerDepartmentCreate(BaseModel):
+    buyer_id: int = Field(..., ge=1, description="Buyer ID")
+    department_id: int = Field(..., ge=1, description="Department ID")
+    custom_name: Optional[str] = Field(None, description="Custom department name for this buyer")
+
+
 class RolePermissionsUpdate(BaseModel):
     permissions: List[str] = Field(default_factory=list, description="Allowed permissions for role")
 
@@ -87,6 +99,31 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class BuyerResponse(BaseModel):
+    id: int
+    name: str
+    code: Optional[str] = None
+    organization_id: Optional[int] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BuyerDepartmentResponse(BaseModel):
+    id: int
+    buyer_id: int
+    department_id: int
+    custom_name: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 
 class SummaryResponse(BaseModel):
     total: int

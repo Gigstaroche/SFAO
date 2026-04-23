@@ -12,10 +12,11 @@ Deliver the portal in clear phases, starting with access control and operations 
 - Department shown on user profile/header
 - Hide modules user should not access
 
-## Phase 2 - Operations Core
+## Phase 2 - Operations Core & DB Expansion
 - Department queue view
 - Filters: department, urgency, status
 - Assign/Re-route controls
+- Database schema expansion (additional models/tables for advanced routing, buyer configs)
 
 ## Phase 3 - Social Monitoring UI
 - Social post cards in dashboard

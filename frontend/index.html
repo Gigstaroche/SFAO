@@ -1380,6 +1380,11 @@
         <a class="nav-link nav-module-categories" id="nav-categories" href="#category-panel"><i class="fa-solid fa-layer-group"></i>Categories</a>
         <a class="nav-link nav-module-channels" id="nav-channels" href="#source-panel"><i class="fa-solid fa-globe"></i>Channels</a>
       </div>
+
+      <div class="nav-group" id="nav-operations-group">
+        <p class="nav-title">Operations</p>
+        <a class="nav-link nav-module-operations" id="nav-operations" href="#operations-panel"><i class="fa-solid fa-list-check"></i>Queue</a>
+      </div>
     </aside>
 
     <main class="main">
@@ -1534,6 +1539,28 @@
           <div id="source-summary" class="mini-list"></div>
         </article>
       </section>
+
+      <section class="panel" id="operations-panel">
+        <header class="panel-header">
+          <div>
+            <h2 class="panel-title">Operations Queue</h2>
+            <p class="panel-sub">Department feedback queue with routing controls</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="queue-department-filter" class="status-select">
+              <option value="">All departments</option>
+            </select>
+            <select id="queue-status-filter" class="status-select">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="assigned">Assigned</option>
+              <option value="needs-triage">Needs Triage</option>
+            </select>
+            <button id="refresh-queue" class="btn" type="button"><i class="fa-solid fa-rotate-right"></i></button>
+          </div>
+        </header>
+        <div id="operations-queue" class="feed"></div>
+      </section>
     </main>
     </div>
   </div>
@@ -1629,11 +1656,11 @@
     const NOTIFICATION_READ_KEY = 'sfao.notifications.lastReadAt';
 
     const ROLE_MODULE_ACCESS = {
-      'super_admin': ['dashboard', 'survey', 'alerts', 'categories', 'channels'],
-      'survey_admin': ['dashboard', 'survey', 'alerts', 'categories', 'channels'],
-      'survey_manager': ['dashboard', 'survey', 'alerts', 'categories', 'channels'],
-      'analyst': ['dashboard', 'alerts', 'categories', 'channels'],
-      'department_resolver': ['dashboard', 'alerts'],
+      'super_admin': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations'],
+      'survey_admin': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations'],
+      'survey_manager': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations'],
+      'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations'],
+      'department_resolver': ['dashboard', 'alerts', 'operations'],
       'employee': ['dashboard', 'survey']
     };
 
@@ -1685,7 +1712,8 @@
       const moduleMap = {
         'alerts': '.nav-module-alerts',
         'categories': '.nav-module-categories',
-        'channels': '.nav-module-channels'
+        'channels': '.nav-module-channels',
+        'operations': '.nav-module-operations'
       };
       
       Object.entries(moduleMap).forEach(([module, selector]) => {

@@ -958,6 +958,12 @@ def login_user(user_login: UserLogin, db: Session = Depends(get_db)):
         if not authenticated_user:
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
+        # Fetch department name
+        department_name = None
+        if authenticated_user.department_id:
+            department = db.query(Department).filter(Department.id == authenticated_user.department_id).first()
+            department_name = department.name if department else None
+        
         return APIResponse(
             success=True,
             message="Login successful",
@@ -966,6 +972,7 @@ def login_user(user_login: UserLogin, db: Session = Depends(get_db)):
                 "name": authenticated_user.name,
                 "email": authenticated_user.email,
                 "role": authenticated_user.role,
+                "department": department_name,
                 "access_token": create_access_token(authenticated_user),
                 "token_type": "bearer",
                 "expires_in": ACCESS_TOKEN_EXPIRY_MINUTES * 60,

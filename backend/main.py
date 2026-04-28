@@ -28,6 +28,7 @@ from models import (
     RolePermission,
     AuditLog,
     NotificationPreference,
+    SurveyTemplate,
     get_db,
     create_tables,
     SessionLocal,
@@ -36,7 +37,8 @@ from schemas import (
     FeedbackCreate, SurveyCreate, StatusUpdate, UserCreate, UserLogin, EmailCodeRequest,
     UserSettingsUpdate, UserSettingsResponse, UserRoleUpdate,
     OrganizationCreate, DepartmentCreate, BuyerCreate, BuyerDepartmentCreate, RolePermissionsUpdate, FeedbackRouteUpdate,
-    FeedbackResponse, UserResponse, BuyerResponse, BuyerDepartmentResponse, SummaryResponse, APIResponse
+    FeedbackResponse, UserResponse, BuyerResponse, BuyerDepartmentResponse, SummaryResponse, APIResponse,
+    SurveyTemplateCreate, SurveyTemplateUpdate, SurveyTemplateResponse
 )
 
 VALID_ROLES = {
@@ -909,6 +911,100 @@ def route_feedback_item(
             "routing_confidence": feedback.routing_confidence,
         },
     )
+
+
+@app.get("/survey-templates", response_model=List[SurveyTemplateResponse])
+def get_survey_templates(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all survey templates."""
+    templates = db.query(SurveyTemplate).all()
+    return [SurveyTemplateResponse.from_orm(t) for t in templates]
+
+
+@app.post("/survey-templates", response_model=SurveyTemplateResponse)
+def create_survey_template(
+    payload: SurveyTemplateCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("users:view")),
+):
+    """Create a new survey template."""
+    template = SurveyTemplate(
+        name=payload.name,
+        description=payload.description,
+        questions=payload.questions,
+        created_by=current_user.id,
+    )
+    db.add(template)
+    db.commit()
+    db.refresh(template)
+    return SurveyTemplateResponse.from_orm(template)
+
+
+@app.put("/survey-templates/{template_id}", response_model=SurveyTemplateResponse)
+def update_survey_template(
+    template_id: int,
+    payload: SurveyTemplateUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("users:view")),
+):
+    """Update a survey template."""
+    template = db.query(SurveyTemplate).filter(SurveyTemplate.id == template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    if payload.name is not None:
+        template.name = payload.name
+    if payload.description is not None:
+        template.description = payload.description
+    if payload.questions is not None:
+        template.questions = payload.questions
+    if payload.is_published is not None:
+        template.is_published = payload.is_published
+
+    db.commit()
+    db.refresh(template)
+    return SurveyTemplateResponse.from_orm(template)
+
+
+@app.delete("/survey-templates/{template_id}", response_model=APIResponse)
+def delete_survey_template(
+    template_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("users:view")),
+):
+    """Delete a survey template."""
+    template = db.query(SurveyTemplate).filter(SurveyTemplate.id == template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    db.delete(template)
+    db.commit()
+    return APIResponse(success=True, message="Template deleted")
+
+
+@app.post("/survey-templates/{template_id}/duplicate", response_model=SurveyTemplateResponse)
+def duplicate_survey_template(
+    template_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("users:view")),
+):
+    """Duplicate a survey template."""
+    template = db.query(SurveyTemplate).filter(SurveyTemplate.id == template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    new_template = SurveyTemplate(
+        name=f"{template.name} (Copy)",
+        description=template.description,
+        questions=template.questions,
+        created_by=current_user.id,
+    )
+    db.add(new_template)
+    db.commit()
+    db.refresh(new_template)
+    return SurveyTemplateResponse.from_orm(new_template)
 
 
 @app.post("/users/register", response_model=APIResponse)

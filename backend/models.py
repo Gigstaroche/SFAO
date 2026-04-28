@@ -88,6 +88,19 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
+class SurveyTemplate(Base):
+    __tablename__ = "survey_templates"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    questions = Column(Text, nullable=False)  # JSON string of questions
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    is_published = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class NotificationPreference(Base):
     __tablename__ = "notification_preferences"
 

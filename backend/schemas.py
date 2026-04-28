@@ -47,6 +47,30 @@ class UserRoleUpdate(BaseModel):
     role: str = Field(..., description="New role for the target user")
 
 
+class SurveyTemplateCreate(BaseModel):
+    name: str = Field(..., description="Template name")
+    description: Optional[str] = Field(None, description="Template description")
+    questions: str = Field(..., description="JSON string of questions")
+
+
+class SurveyTemplateUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Template name")
+    description: Optional[str] = Field(None, description="Template description")
+    questions: Optional[str] = Field(None, description="JSON string of questions")
+    is_published: Optional[bool] = Field(None, description="Publish status")
+
+
+class SurveyTemplateResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+    questions: str
+    created_by: Optional[int]
+    is_published: bool
+    created_at: datetime
+    updated_at: datetime
+
+
 class OrganizationCreate(BaseModel):
     name: str = Field(..., min_length=2, description="Organization display name")
     code: Optional[str] = Field(None, description="Optional short organization code")

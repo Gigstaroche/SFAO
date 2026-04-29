@@ -61,6 +61,11 @@
       scrollbar-color: #3b4b84 transparent;
     }
 
+    html,
+    body {
+      height: 100%;
+    }
+
     body {
       margin: 0;
       font-family: 'Plus Jakarta Sans', sans-serif;
@@ -70,7 +75,7 @@
         radial-gradient(50rem 30rem at 100% -10%, rgba(68, 215, 182, 0.1), transparent 45%),
         linear-gradient(160deg, #080d1b 0%, #0b1020 55%, #0f1430 100%);
       min-height: 100vh;
-      overflow-x: hidden;
+      overflow: hidden;
       transition: background 200ms ease, color 180ms ease;
     }
 
@@ -90,7 +95,7 @@
     .app-frame {
       width: min(1600px, calc(100% - 1.8rem));
       margin: 0.7rem auto;
-      min-height: calc(100vh - 2rem);
+      height: calc(100vh - 1.4rem);
       border-radius: 1.2rem;
       border: 1px solid rgba(95, 117, 197, 0.25);
       overflow: hidden;
@@ -302,17 +307,6 @@
       opacity: 0.55;
     }
 
-    .app-frame {
-      width: min(1600px, calc(100% - 1.8rem));
-      margin: 0.7rem auto;
-      min-height: calc(100vh - 2rem);
-      border-radius: 1.2rem;
-      border: 1px solid rgba(95, 117, 197, 0.25);
-      overflow: hidden;
-      background: rgba(8, 13, 27, 0.55);
-      box-shadow: 0 22px 50px rgba(4, 8, 22, 0.35);
-    }
-
     .auth-field input {
       width: 100%;
       background: rgba(11, 16, 32, 0.75);
@@ -366,17 +360,6 @@
       font-size: 0.74rem;
       line-height: 1.45;
     }
-    .app-frame {
-      width: min(1600px, calc(100% - 1.8rem));
-      margin: 0.7rem auto;
-      min-height: calc(100vh - 2rem);
-      border-radius: 1.2rem;
-      border: 1px solid rgba(95, 117, 197, 0.25);
-      overflow: hidden;
-      background: rgba(8, 13, 27, 0.55);
-      box-shadow: 0 22px 50px rgba(4, 8, 22, 0.35);
-    }
-
     [data-theme='light'] .app-frame {
       border-color: var(--line);
       background: rgba(255, 255, 255, 0.6);
@@ -489,7 +472,12 @@
     }
 
     .main {
-      padding: 1.2rem 1.2rem 1.8rem;
+      padding: 0.85rem 0.9rem 0.9rem;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
     }
 
     .topbar {
@@ -497,8 +485,8 @@
       justify-content: space-between;
       gap: 1rem;
       align-items: center;
-      margin-bottom: 1rem;
-      padding: 0.9rem 1rem;
+      margin-bottom: 0;
+      padding: 0.65rem 0.8rem;
       border-radius: 1rem;
       border: 1px solid rgba(95, 117, 197, 0.25);
       background: rgba(17, 23, 48, 0.7);
@@ -516,7 +504,7 @@
       display: flex;
       align-items: center;
       gap: 0.7rem;
-      padding: 0.7rem 0.8rem;
+      padding: 0.55rem 0.75rem;
       border-radius: 0.75rem;
       background: rgba(11, 16, 32, 0.7);
       border: 1px solid rgba(95, 117, 197, 0.22);
@@ -605,14 +593,14 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.76rem;
+      font-size: 0.7rem;
       font-weight: 700;
       letter-spacing: 0.05em;
       text-transform: uppercase;
       color: #b7ffe8;
       border: 1px solid rgba(68, 215, 182, 0.4);
       background: rgba(68, 215, 182, 0.12);
-      padding: 0.43rem 0.62rem;
+      padding: 0.32rem 0.55rem;
       border-radius: 999px;
     }
 
@@ -638,7 +626,7 @@
     }
 
     .hero {
-      margin: 1rem 0 1.25rem;
+      margin: 0;
       display: flex;
       justify-content: space-between;
       gap: 1rem;
@@ -647,7 +635,7 @@
 
     .hero h1 {
       margin: 0;
-      font-size: clamp(1.3rem, 2vw, 1.8rem);
+      font-size: clamp(1.15rem, 1.7vw, 1.45rem);
       letter-spacing: -0.02em;
       font-weight: 800;
     }
@@ -655,14 +643,14 @@
     .hero p {
       margin: 0.3rem 0 0;
       color: var(--muted);
-      font-size: 0.92rem;
+      font-size: 0.82rem;
     }
 
     .cards {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0.9rem;
-      margin-bottom: 1rem;
+      gap: 0.55rem;
+      margin-bottom: 0;
     }
 
     .card {
@@ -670,7 +658,7 @@
       border: 1px solid rgba(95, 117, 197, 0.26);
       border-radius: 1rem;
       box-shadow: var(--shadow);
-      padding: 0.95rem;
+      padding: 0.7rem 0.8rem;
       position: relative;
       overflow: hidden;
       transition: transform 180ms ease, border-color 180ms ease;
@@ -690,7 +678,7 @@
     .metric-title {
       color: var(--muted);
       color: color-mix(in srgb, var(--muted) 92%, var(--text) 8%);
-      font-size: 0.73rem;
+      font-size: 0.66rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -698,7 +686,7 @@
     }
 
     .metric-value {
-      font-size: 1.65rem;
+      font-size: 1.35rem;
       font-weight: 800;
       letter-spacing: -0.01em;
       margin: 0;
@@ -733,8 +721,8 @@
     .chart-grid {
       display: grid;
       grid-template-columns: 1.45fr 1fr;
-      gap: 0.9rem;
-      margin-bottom: 0.95rem;
+      gap: 0.55rem;
+      margin-bottom: 0;
     }
 
     .panel {
@@ -742,7 +730,7 @@
       background: linear-gradient(180deg, rgba(21, 29, 60, 0.95), rgba(15, 23, 50, 0.95));
       border: 1px solid rgba(95, 117, 197, 0.25);
       box-shadow: var(--shadow);
-      padding: 0.95rem;
+      padding: 0.7rem 0.8rem;
     }
 
     [data-theme='light'] .panel {
@@ -759,33 +747,36 @@
 
     .panel-title {
       margin: 0;
-      font-size: 0.95rem;
+      font-size: 0.82rem;
       font-weight: 700;
       letter-spacing: 0.01em;
     }
 
     .panel-sub {
       color: var(--muted);
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       font-weight: 600;
     }
 
     .chart-wrap {
       position: relative;
-      height: 280px;
+      height: 150px;
     }
 
     .bottom-grid {
       display: grid;
       grid-template-columns: 1.6fr 1fr;
-      gap: 0.9rem;
+      gap: 0.55rem;
+      min-height: 0;
+      flex: 1;
     }
 
     .feed {
-      max-height: 360px;
-      overflow: auto;
+      max-height: none;
+      height: 100%;
+      overflow: hidden;
       display: grid;
-      gap: 0.62rem;
+      gap: 0.42rem;
       padding-right: 0.3rem;
     }
 
@@ -794,7 +785,7 @@
       border-left-width: 4px;
       border-radius: 0.85rem;
       background: rgba(17, 23, 48, 0.82);
-      padding: 0.75rem;
+      padding: 0.55rem 0.65rem;
       transition: all 180ms ease;
       animation: reveal 240ms ease;
     }
@@ -894,7 +885,7 @@
 
     .mini-list {
       display: grid;
-      gap: 0.58rem;
+      gap: 0.4rem;
       margin-top: 0.2rem;
     }
 
@@ -902,11 +893,11 @@
       border-radius: 0.75rem;
       border: 1px solid rgba(95, 117, 197, 0.22);
       background: rgba(17, 23, 48, 0.75);
-      padding: 0.62rem;
+      padding: 0.5rem 0.55rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.78rem;
+      font-size: 0.7rem;
       color: #cfdbff;
     }
 
@@ -1229,6 +1220,10 @@
     }
 
     @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
       .app-frame {
         width: calc(100% - 0.7rem);
         margin: 0.35rem auto;
@@ -1248,6 +1243,9 @@
       }
 
       .main {
+        height: auto;
+        overflow: visible;
+        display: block;
         padding-top: 0.9rem;
       }
     }
@@ -1380,21 +1378,6 @@
         <a class="nav-link nav-module-alerts" id="nav-alerts" href="#feed-panel"><i class="fa-regular fa-bell"></i>Alerts</a>
         <a class="nav-link nav-module-categories" id="nav-categories" href="#category-panel"><i class="fa-solid fa-layer-group"></i>Categories</a>
         <a class="nav-link nav-module-channels" id="nav-channels" href="#source-panel"><i class="fa-solid fa-globe"></i>Channels</a>
-      </div>
-
-      <div class="nav-group" id="nav-operations-group">
-        <p class="nav-title">Operations</p>
-        <a class="nav-link nav-module-operations" id="nav-operations" href="#operations-panel"><i class="fa-solid fa-list-check"></i>Workboard</a>
-      </div>
-
-      <div class="nav-group" id="nav-social-group">
-        <p class="nav-title">Social</p>
-        <a class="nav-link nav-module-social" id="nav-social" href="#social-panel"><i class="fa-solid fa-hashtag"></i>Monitoring</a>
-      </div>
-
-      <div class="nav-group" id="nav-admin-group">
-        <p class="nav-title">Admin</p>
-        <a class="nav-link nav-module-admin" id="nav-admin" href="#buyer-panel"><i class="fa-solid fa-cogs"></i>Buyer Config</a>
       </div>
     </aside>
 
@@ -1549,113 +1532,6 @@
           <div class="chart-wrap" style="height:220px;"><canvas id="chart-category"></canvas></div>
           <div id="source-summary" class="mini-list"></div>
         </article>
-      </section>
-
-      <section class="panel" id="operations-panel">
-        <header class="panel-header">
-          <div>
-            <h2 class="panel-title">Resolver Workboard</h2>
-            <p class="panel-sub">Department feedback workboard with status flow and SLA indicators</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <select id="queue-department-filter" class="status-select">
-              <option value="">All departments</option>
-              <option value="Customer Care">Customer Care</option>
-              <option value="Network Ops">Network Ops</option>
-              <option value="IT">IT</option>
-              <option value="Finance">Finance</option>
-              <option value="HR">HR</option>
-              <option value="Product">Product</option>
-            </select>
-            <select id="queue-status-filter" class="status-select">
-              <option value="">All statuses</option>
-              <option value="pending">Pending</option>
-              <option value="assigned">Assigned</option>
-              <option value="needs-triage">Needs Triage</option>
-            </select>
-            <button id="refresh-queue" class="btn" type="button"><i class="fa-solid fa-rotate-right"></i></button>
-          </div>
-        </header>
-        <div id="operations-queue" class="feed"></div>
-      </section>
-
-      <section class="panel" id="social-panel">
-        <header class="panel-header">
-          <div>
-            <h2 class="panel-title">Social Media Monitoring</h2>
-            <p class="panel-sub">Real-time social post analysis with sentiment and urgency insights</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <select id="social-source-filter" class="status-select">
-              <option value="">All sources</option>
-              <option value="Twitter">Twitter</option>
-              <option value="Facebook">Facebook</option>
-              <option value="Instagram">Instagram</option>
-              <option value="LinkedIn">LinkedIn</option>
-              <option value="Reddit">Reddit</option>
-            </select>
-            <button id="refresh-social" class="btn" type="button"><i class="fa-solid fa-rotate-right"></i></button>
-          </div>
-        </header>
-        <div id="social-posts" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-      </section>
-
-      <section class="panel" id="buyer-panel">
-        <header class="panel-header">
-          <div>
-            <h2 class="panel-title">Buyer Tailoring</h2>
-            <p class="panel-sub">Configure buyer-specific departments, categories, and KPIs</p>
-          </div>
-        </header>
-        <div class="space-y-6">
-          <div>
-            <h3 class="text-lg font-semibold mb-4">Safaricom Configuration</h3>
-            <div class="bg-gray-800 rounded-xl p-4">
-              <h4 class="font-medium mb-2">Department Map</h4>
-              <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
-                <li>Mobile Money (M-Pesa)</li>
-                <li>Data & Internet Services</li>
-                <li>Voice & SMS</li>
-                <li>Customer Care</li>
-                <li>Network & Coverage</li>
-                <li>Billing & Payments</li>
-                <li>Device Support</li>
-                <li>Business Solutions</li>
-              </ul>
-            </div>
-            <div class="bg-gray-800 rounded-xl p-4 mt-4">
-              <h4 class="font-medium mb-2">Issue Categories</h4>
-              <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
-                <li>Transaction Failures</li>
-                <li>Service Outages</li>
-                <li>Billing Disputes</li>
-                <li>Network Issues</li>
-                <li>App Problems</li>
-                <li>Account Security</li>
-                <li>Feature Requests</li>
-                <li>General Complaints</li>
-              </ul>
-            </div>
-            <div class="bg-gray-800 rounded-xl p-4 mt-4">
-              <h4 class="font-medium mb-2">KPIs & Demo Scenario</h4>
-              <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Response Time:</strong> < 2 hours for High priority
-                </div>
-                <div>
-                  <strong>Resolution Rate:</strong> 95% within SLA
-                </div>
-                <div>
-                  <strong>Customer Satisfaction:</strong> >4.5/5
-                </div>
-                <div>
-                  <strong>Escalation Rate:</strong> <5%
-                </div>
-              </div>
-              <p class="text-xs text-gray-400 mt-2">Demo scenario: Simulate M-Pesa transaction failures and network outages for East Africa region.</p>
-            </div>
-          </div>
-        </div>
       </section>
     </main>
     </div>
@@ -1815,9 +1691,6 @@
         'channels': '.nav-module-channels',
         'operations': '.nav-module-operations',
         'survey_builder': '.nav-module-survey-builder'
-      };
-        'channels': '.nav-module-channels',
-        'operations': '.nav-module-operations'
       };
       
       Object.entries(moduleMap).forEach(([module, selector]) => {
@@ -2517,44 +2390,19 @@
         filters.alertsOnly = true;
         document.getElementById('alerts-toggle').classList.add('primary');
         renderFilteredFeed();
-        document.getElementById('feed-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast('Alerts filter applied');
       });
 
       document.getElementById('nav-categories').addEventListener('click', (event) => {
         event.preventDefault();
-        document.getElementById('category-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
         showToast('Use Category filter to focus your view');
       });
 
       document.getElementById('nav-channels').addEventListener('click', (event) => {
         event.preventDefault();
-        document.getElementById('source-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
         showToast('Use Channel filter to focus your view');
       });
 
-      document.getElementById('nav-operations').addEventListener('click', (event) => {
-        event.preventDefault();
-        document.getElementById('operations-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        loadQueue();
-      });
-
-      document.getElementById('nav-social').addEventListener('click', (event) => {
-        event.preventDefault();
-        document.getElementById('social-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        loadSocialPosts();
-      });
-
-      document.getElementById('nav-admin').addEventListener('click', (event) => {
-        event.preventDefault();
-        document.getElementById('buyer-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-
-      document.getElementById('queue-department-filter').addEventListener('change', loadQueue);
-      document.getElementById('queue-status-filter').addEventListener('change', loadQueue);
-      document.getElementById('refresh-queue').addEventListener('click', loadQueue);
-
-      document.getElementById('social-source-filter').addEventListener('change', loadSocialPosts);
-      document.getElementById('refresh-social').addEventListener('click', loadSocialPosts);
     }
 
     function baseLegend() {
@@ -2737,7 +2585,7 @@
         return;
       }
 
-      container.innerHTML = feed.slice(0, 15).map((item) => `
+      container.innerHTML = feed.slice(0, 6).map((item) => `
         <div class="feed-item ${urgencyClass(item.urgency)}">
           <div class="flex items-start justify-between gap-2">
             <div>
@@ -2760,180 +2608,6 @@
           </div>
         </div>
       `).join('');
-    }
-
-    async function loadQueue() {
-      const department = document.getElementById('queue-department-filter').value;
-      const routingStatus = document.getElementById('queue-status-filter').value;
-      const params = new URLSearchParams();
-      if (department) params.set('department', department);
-      if (routingStatus) params.set('routing_status', routingStatus);
-      params.set('limit', '50');
-
-      try {
-        const res = await fetch(`${API}/operations/queue?${params.toString()}`, { headers: getAuthHeaders() });
-        if (!res.ok) throw new Error('Failed to load queue');
-        const queue = await res.json();
-        updateQueue(queue);
-      } catch (err) {
-        console.error('Load queue error:', err);
-        document.getElementById('operations-queue').innerHTML = '<p class="muted" style="padding:0.8rem;">Failed to load queue.</p>';
-      }
-    }
-
-    function updateQueue(queue) {
-      const container = document.getElementById('operations-queue');
-
-      if (!queue || !queue.length) {
-        container.innerHTML = '<p class="muted" style="padding:0.8rem;">No items in workboard.</p>';
-        return;
-      }
-
-      container.innerHTML = queue.map((item) => {
-        const slaStatus = getSLAStatus(item);
-        const slaBadge = slaStatus === 'escalate' ? '🚨 Escalate' : slaStatus === 'warning' ? '⚠️ Warning' : '';
-        return `
-        <div class="feed-item ${urgencyClass(item.urgency)}">
-          <div class="flex items-start justify-between gap-2">
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <span class="${sentimentClass(item.sentiment)}">${item.sentiment}</span>
-                <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1);">${item.source}</span>
-                <span class="muted">${new Date(item.created_at || Date.now()).toLocaleString()}</span>
-              </div>
-              <p class="text-sm leading-6" style="margin:0; color:var(--text);">${item.text || ''}</p>
-              <div class="flex gap-2 mt-2">
-                <span class="badge" style="color:#d8e3ff; border-color:rgba(124,142,214,0.35); background:rgba(17,23,48,0.7);">${item.category || 'General'}</span>
-                <span class="badge" style="color:#ffcfd9; border-color:rgba(255,107,138,0.34); background:rgba(255,107,138,0.1);">${item.urgency || 'Low'}</span>
-                <span class="badge" style="color:#a8d5ff; border-color:rgba(84,167,255,0.34); background:rgba(84,167,255,0.1);">${item.routing_status || 'pending'}</span>
-                ${slaBadge ? `<span class="badge ${slaStatus === 'escalate' ? 'badge-neg' : 'badge-neu'}">${slaBadge}</span>` : ''}
-              </div>
-            </div>
-            <div class="flex flex-col gap-2">
-              <select class="status-select" onchange="updateStatus(${item.id}, this.value)">
-                <option ${item.status === 'New' ? 'selected' : ''}>New</option>
-                <option ${item.status === 'In-Progress' ? 'selected' : ''}>In-Progress</option>
-                <option ${item.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
-              </select>
-              <select class="status-select" onchange="routeFeedback(${item.id}, this.value, 'assigned')">
-                <option value="">Select department</option>
-                <option value="Customer Care">Customer Care</option>
-                <option value="Network Ops">Network Ops</option>
-                <option value="IT">IT</option>
-                <option value="Finance">Finance</option>
-                <option value="HR">HR</option>
-                <option value="Product">Product</option>
-              </select>
-              <button class="btn btn-sm" onclick="routeFeedback(${item.id}, document.querySelector('select[onchange*=\"routeFeedback(${item.id})\"]').value, 'assigned')">Assign</button>
-              <button class="btn btn-sm" onclick="routeFeedback(${item.id}, document.querySelector('select[onchange*=\"routeFeedback(${item.id})\"]').value, 'needs-triage')">Re-route</button>
-            </div>
-          </div>
-        </div>
-      `}).join('');
-    }
-
-    function getSLAStatus(item) {
-      const created = new Date(item.created_at || Date.now());
-      const now = new Date();
-      const hours = (now - created) / (1000 * 60 * 60);
-      const urgency = item.urgency || 'Low';
-
-      if (urgency === 'High' && hours > 24) return 'escalate';
-      if (urgency === 'Medium' && hours > 72) return 'escalate';
-      if (urgency === 'Low' && hours > 168) return 'escalate'; // 1 week
-      if ((urgency === 'High' && hours > 12) || (urgency === 'Medium' && hours > 48) || (urgency === 'Low' && hours > 96)) return 'warning';
-      return 'normal';
-    }
-
-    async function routeFeedback(id, department, status) {
-      if (!department) {
-        showToast('Select a department first');
-        return;
-      }
-      const authHeaders = getAuthHeaders({ 'Content-Type': 'application/json' });
-      try {
-        const res = await fetch(`${API}/operations/route/${id}`, {
-          method: 'PUT',
-          headers: authHeaders,
-          body: JSON.stringify({ department_tag: department, routing_status: status })
-        });
-        if (!res.ok) throw new Error('Failed to route');
-        showToast('Feedback routed successfully');
-        loadQueue();
-      } catch (err) {
-        console.error('Route error:', err);
-        showToast('Failed to route feedback');
-      }
-    }
-
-    async function loadSocialPosts() {
-      const source = document.getElementById('social-source-filter').value;
-      const params = new URLSearchParams();
-      params.set('limit', '50');
-      if (source) params.set('source', source);
-
-      try {
-        const res = await fetch(`${API}/feed?${params.toString()}`, { headers: getAuthHeaders() });
-        if (!res.ok) throw new Error('Failed to load social posts');
-        const posts = await res.json();
-        updateSocialPosts(posts);
-      } catch (err) {
-        console.error('Load social posts error:', err);
-        document.getElementById('social-posts').innerHTML = '<p class="muted" style="padding:0.8rem;">Failed to load social posts.</p>';
-      }
-    }
-
-    function updateSocialPosts(posts) {
-      const container = document.getElementById('social-posts');
-
-      if (!posts || !posts.length) {
-        container.innerHTML = '<p class="muted" style="padding:0.8rem;">No social posts available.</p>';
-        return;
-      }
-
-      container.innerHTML = posts.map((post) => `
-        <div class="bg-gray-800 rounded-xl p-4 hover:bg-gray-700 transition cursor-pointer" onclick="showPostDetails(${post.id})">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="${sentimentClass(post.sentiment)}">${post.sentiment}</span>
-            <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1);">${post.source}</span>
-            <span class="badge ${urgencyClass(post.urgency)}">${post.urgency}</span>
-          </div>
-          <p class="text-sm leading-6 mb-2" style="color:var(--text);">${post.text || ''}</p>
-          <div class="flex items-center justify-between text-xs text-gray-400">
-            <span>${post.category || 'General'}</span>
-            <span>${new Date(post.created_at || Date.now()).toLocaleString()}</span>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function showPostDetails(postId) {
-      // Find the post from latestFeed or fetch individually
-      const post = latestFeed.find(p => p.id === postId);
-      if (!post) return;
-
-      // Create a modal or popup
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-      modal.innerHTML = `
-        <div class="bg-gray-800 rounded-xl p-6 max-w-lg w-full mx-4">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold">Post Details</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-          </div>
-          <div class="space-y-3">
-            <div><strong>Source:</strong> ${post.source}</div>
-            <div><strong>Sentiment:</strong> <span class="${sentimentClass(post.sentiment)}">${post.sentiment}</span></div>
-            <div><strong>Urgency:</strong> <span class="${urgencyClass(post.urgency)}">${post.urgency}</span></div>
-            <div><strong>Category:</strong> ${post.category || 'General'}</div>
-            <div><strong>Status:</strong> ${post.status || 'New'}</div>
-            <div><strong>Department:</strong> ${post.department_tag || 'Unassigned'}</div>
-            <div><strong>Text:</strong> <p class="mt-1">${post.text || ''}</p></div>
-            <div><strong>Suggested Action:</strong> ${post.urgency === 'High' ? 'Escalate immediately' : 'Monitor and respond'}</div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
     }
 
     async function refresh() {

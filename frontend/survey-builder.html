@@ -649,29 +649,68 @@
     const API = window.location.origin;
     let currentUser = null;
 
+    function getSessionUser() {
+      try {
+        const raw = sessionStorage.getItem('sfao_user');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed?.data || parsed;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function getAuthToken() {
+      const direct = sessionStorage.getItem('sfao_token');
+      if (direct) return direct;
+      const user = getSessionUser();
+      return user?.access_token || null;
+    }
+
+    function requireAuthOrRedirect() {
+      const token = getAuthToken();
+      if (!token) {
+        window.location.href = '/portal/dashboard';
+        return false;
+      }
+      return true;
+    }
+
     function getAuthHeaders(extra = {}) {
-      const token = sessionStorage.getItem('sfao_token');
+      const token = getAuthToken();
       return {
-        'Authorization': `Bearer ${token}`,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...extra
       };
     }
 
     async function loadUserProfile() {
+      const fallbackUser = getSessionUser();
       try {
         const res = await fetch(`${API}/auth/me`, { headers: getAuthHeaders() });
         if (res.ok) {
-          currentUser = await res.json();
-          document.getElementById('user-name-display').textContent = currentUser.name || 'User';
-          document.getElementById('profile-menu-name').textContent = currentUser.name || 'User';
-          document.getElementById('profile-menu-role').textContent = currentUser.role || 'User';
-          document.getElementById('profile-menu-dept').textContent = currentUser.department || '';
-          document.getElementById('avatar-initials').textContent = (currentUser.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
-          updateMenuVisibility(currentUser.role);
+          const payload = await res.json();
+          currentUser = payload?.data || payload;
+          applyUserProfile(currentUser);
+          return;
         }
       } catch (err) {
         console.error('Failed to load user profile:', err);
       }
+
+      if (fallbackUser) {
+        currentUser = fallbackUser;
+        applyUserProfile(currentUser);
+      }
+    }
+
+    function applyUserProfile(user) {
+      document.getElementById('user-name-display').textContent = user.name || 'User';
+      document.getElementById('profile-menu-name').textContent = user.name || 'User';
+      document.getElementById('profile-menu-role').textContent = user.role || 'User';
+      document.getElementById('profile-menu-dept').textContent = user.department || '';
+      document.getElementById('avatar-initials').textContent = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+      updateMenuVisibility(user.role);
     }
 
     function updateMenuVisibility(userRole) {
@@ -860,16 +899,16 @@
       if (isLight) {
         document.documentElement.removeAttribute('data-theme');
         document.getElementById('theme-icon').className = 'fa-solid fa-moon';
-        localStorage.setItem('sfao_theme', 'dark');
+        localStorage.setItem('sfao.theme', 'dark');
       } else {
         document.documentElement.setAttribute('data-theme', 'light');
         document.getElementById('theme-icon').className = 'fa-solid fa-sun';
-        localStorage.setItem('sfao_theme', 'light');
+        localStorage.setItem('sfao.theme', 'light');
       }
     });
 
     // Load theme
-    if (localStorage.getItem('sfao_theme') === 'light') {
+    if (localStorage.getItem('sfao.theme') === 'light') {
       document.documentElement.setAttribute('data-theme', 'light');
       document.getElementById('theme-icon').className = 'fa-solid fa-sun';
     }
@@ -896,9 +935,11 @@
     document.getElementById('add-question-btn').addEventListener('click', addQuestionField);
 
     // Initialize
-    loadUserProfile();
-    loadSurveyTemplates();
-    addQuestionField(); // Add default question field
+    if (requireAuthOrRedirect()) {
+      loadUserProfile();
+      loadSurveyTemplates();
+      addQuestionField(); // Add default question field
+    }
   </script>
 </body>
 </html>

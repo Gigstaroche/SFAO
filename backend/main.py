@@ -1092,6 +1092,27 @@ def login_auth(user_login: UserLogin, db: Session = Depends(get_db)):
     return login_user(user_login, db)
 
 
+@app.get("/auth/me", response_model=APIResponse)
+def get_current_user_info(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get current user information for session validation."""
+    department_name = None
+    if current_user.department_id:
+        department = db.query(Department).filter(Department.id == current_user.department_id).first()
+        department_name = department.name if department else None
+    
+    return APIResponse(
+        success=True,
+        message="User authenticated",
+        data={
+            "id": current_user.id,
+            "name": current_user.name,
+            "email": current_user.email,
+            "role": current_user.role,
+            "department": department_name,
+        }
+    )
+
+
 @app.get("/users/{user_id}/settings", response_model=UserSettingsResponse)
 def get_user_settings(
     user_id: int,

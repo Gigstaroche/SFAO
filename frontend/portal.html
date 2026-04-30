@@ -528,7 +528,7 @@
           ? feed.map(item => `
               <div class="flex items-center gap-2 border-b border-gray-700 pb-2">
                 <span class="text-xs font-semibold ${urgencyColor[item.urgency]||'text-gray-400'} w-14 shrink-0">${item.urgency}</span>
-                <span class="flex-1 truncate text-xs">${item.text}</span>
+                <span class="flex-1 text-xs">${item.text}</span>
                 <span class="text-xs text-gray-500">${item.source}</span>
               </div>`).join('')
           : '<p class="text-gray-500 text-xs">No feedback yet.</p>';

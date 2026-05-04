@@ -1,17 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SFAO - Analytics Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M19 36h8v11h-8zm10-8h8v19h-8zm10-11h8v30h-8z' fill='%233b82f6'/%3E%3C/svg%3E">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <script>
-    // Simple session check - demo mode: always show dashboard
+// Simple session check - demo mode: always show dashboard
     document.documentElement.classList.add('has-session');
   </script>
   <style>
@@ -3259,6 +3246,3 @@
       // Load demo data even without login
       initUiControls().then(refresh);
     }
-  </script>
-</body>
-</html>

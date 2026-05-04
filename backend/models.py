@@ -5,7 +5,8 @@ from sqlalchemy.sql import func
 import os
 
 # Database URL
-DATABASE_URL = "sqlite:///./sfao.db"
+DATABASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sfao.db"))
+DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 
 # Create engine
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})

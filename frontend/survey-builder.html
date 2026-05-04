@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Survey Builder - SFAO</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M19 36h8v11h-8zm10-8h8v19h-8zm10-11h8v30h-8z' fill='%233b82f6'/%3E%3C/svg%3E">
-  <script src="https://cdn.tailwindcss.com" onerror="(function(){var link=document.createElement('link');link.rel='stylesheet';link.href='assets/offline.css';document.head.appendChild(link);})();"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <script>
@@ -16,8 +16,6 @@
     } catch (_) {}
   </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
     :root {
       --bg: #0b1020;
       --bg-soft: #111730;
@@ -63,7 +61,7 @@
 
     body {
       margin: 0;
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
       color: var(--text);
       background:
         radial-gradient(70rem 30rem at 10% -5%, rgba(84, 167, 255, 0.18), transparent 45%),

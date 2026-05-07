@@ -778,6 +778,46 @@
       color: currentColor;
     }
 
+    .nav-submenu {
+      margin-top: 0.25rem;
+    }
+
+    .nav-submenu-toggle {
+      width: 100%;
+      justify-content: space-between;
+      padding-right: 0.75rem;
+    }
+
+    .nav-submenu-icon {
+      font-size: 0.75rem;
+      transition: transform 0.2s ease;
+    }
+
+    .nav-submenu-toggle.active .nav-submenu-icon {
+      transform: rotate(180deg);
+    }
+
+    .nav-submenu-items {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      margin-top: 0.25rem;
+    }
+
+    .nav-submenu-items.open {
+      max-height: 500px;
+    }
+
+    .nav-submenu-item {
+      padding-left: 2rem;
+      font-size: 0.875rem;
+      opacity: 0.8;
+    }
+
+    .nav-submenu-item:hover {
+      opacity: 1;
+    }
+
     .chart-grid {
       display: grid;
       grid-template-columns: 1.45fr 1fr;
@@ -1439,6 +1479,28 @@
         <p class="nav-title">Social</p>
         <a class="nav-link nav-module-social" id="nav-social" href="#social-panel"><i class="fa-solid fa-hashtag"></i>Monitoring</a>
       </div>
+
+      <div class="nav-group" id="nav-reports-group">
+        <p class="nav-title">Reports</p>
+        <div class="nav-submenu">
+          <button class="nav-link nav-submenu-toggle" id="nav-reports-toggle">
+            <i class="fa-solid fa-file-chart-line"></i>Export Reports
+            <i class="fa-solid fa-chevron-down nav-submenu-icon"></i>
+          </button>
+          <div class="nav-submenu-items" id="nav-reports-submenu">
+            <a class="nav-link nav-submenu-item" id="nav-export-summary-csv" href="#"><i class="fa-solid fa-file-csv"></i>Summary CSV</a>
+            <a class="nav-link nav-submenu-item" id="nav-export-summary-pdf" href="#"><i class="fa-solid fa-file-pdf"></i>Summary PDF</a>
+            <a class="nav-link nav-submenu-item" id="nav-export-feed-csv" href="#"><i class="fa-solid fa-file-csv"></i>Feed CSV</a>
+            <a class="nav-link nav-submenu-item" id="nav-export-feed-pdf" href="#"><i class="fa-solid fa-file-pdf"></i>Feed PDF</a>
+            <a class="nav-link nav-submenu-item" id="nav-export-charts-png" href="#"><i class="fa-solid fa-image"></i>Charts PNG</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-group" id="nav-admin-group">
+        <p class="nav-title">Admin</p>
+        <a class="nav-link nav-module-admin" id="nav-admin-monitoring" href="#admin-monitoring-panel"><i class="fa-solid fa-shield-halved"></i>System Monitoring</a>
+      </div>
     </aside>
 
     <main class="main">
@@ -1810,11 +1872,11 @@
     const NOTIFICATION_READ_KEY = 'sfao.notifications.lastReadAt';
 
     const ROLE_MODULE_ACCESS = {
-      'super_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations'],
-      'survey_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations'],
-      'survey_manager': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations'],
-      'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations'],
-      'department_resolver': ['dashboard', 'alerts', 'operations'],
+      'super_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
+      'survey_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+      'survey_manager': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+      'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+      'department_resolver': ['dashboard', 'alerts', 'operations', 'social'],
       'employee': ['dashboard', 'survey']
     };
 
@@ -1868,7 +1930,10 @@
         'categories': '.nav-module-categories',
         'channels': '.nav-module-channels',
         'operations': '.nav-module-operations',
-        'survey_builder': '.nav-module-survey-builder'
+        'survey_builder': '.nav-module-survey-builder',
+        'social': '.nav-module-social',
+        'reports': '#nav-reports-group',
+        'admin': '.nav-module-admin'
       };
       
       Object.entries(moduleMap).forEach(([module, selector]) => {
@@ -2226,6 +2291,15 @@
       const dropdown = document.querySelector('.dropdown');
       const isOpen = dropdown.classList.contains('open');
       dropdown.classList.toggle('open', !isOpen);
+    }
+
+    function toggleReportsSubmenu() {
+      const toggleBtn = document.getElementById('nav-reports-toggle');
+      const submenu = document.getElementById('nav-reports-submenu');
+      const isOpen = submenu.classList.contains('open');
+
+      toggleBtn.classList.toggle('active', !isOpen);
+      submenu.classList.toggle('open', !isOpen);
     }
 
     async function exportSummary(format) {
@@ -2710,6 +2784,29 @@
       document.getElementById('export-feed-csv').addEventListener('click', () => exportFeed('csv'));
       document.getElementById('export-feed-pdf').addEventListener('click', () => exportFeed('pdf'));
       document.getElementById('export-charts-png').addEventListener('click', exportChartsPNG);
+
+      // Reports submenu functionality
+      document.getElementById('nav-reports-toggle').addEventListener('click', toggleReportsSubmenu);
+      document.getElementById('nav-export-summary-csv').addEventListener('click', (event) => {
+        event.preventDefault();
+        exportSummary('csv');
+      });
+      document.getElementById('nav-export-summary-pdf').addEventListener('click', (event) => {
+        event.preventDefault();
+        exportSummary('pdf');
+      });
+      document.getElementById('nav-export-feed-csv').addEventListener('click', (event) => {
+        event.preventDefault();
+        exportFeed('csv');
+      });
+      document.getElementById('nav-export-feed-pdf').addEventListener('click', (event) => {
+        event.preventDefault();
+        exportFeed('pdf');
+      });
+      document.getElementById('nav-export-charts-png').addEventListener('click', (event) => {
+        event.preventDefault();
+        exportChartsPNG();
+      });
       document.getElementById('notification-trigger').addEventListener('click', () => toggleNotificationPanel());
       document.getElementById('mark-notifications-read').addEventListener('click', markNotificationsRead);
       document.getElementById('profile-trigger').addEventListener('click', () => toggleProfileMenu());
@@ -2726,6 +2823,9 @@
         const notificationTrigger = document.getElementById('notification-trigger');
         const exportTrigger = document.getElementById('export-trigger');
         const exportMenu = document.getElementById('export-menu');
+        const reportsToggle = document.getElementById('nav-reports-toggle');
+        const reportsSubmenu = document.getElementById('nav-reports-submenu');
+
         if (!menu.contains(event.target) && !trigger.contains(event.target)) {
           toggleProfileMenu(false);
         }
@@ -2734,6 +2834,10 @@
         }
         if (!exportMenu.contains(event.target) && !exportTrigger.contains(event.target)) {
           document.querySelector('.dropdown').classList.remove('open');
+        }
+        if (!reportsSubmenu.contains(event.target) && !reportsToggle.contains(event.target)) {
+          reportsToggle.classList.remove('active');
+          reportsSubmenu.classList.remove('open');
         }
       });
 

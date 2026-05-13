@@ -628,6 +628,11 @@ def portal_entry():
 def dashboard_entry():
     return FileResponse(os.path.join(FRONTEND_PATH, "index.html"))
 
+@app.get("/portal/survey-builder")
+@app.get("/portal/survey-builder/")
+def survey_builder_entry():
+    return FileResponse(os.path.join(FRONTEND_PATH, "survey-builder.html"))
+
 # Serve frontend assets and other pages under /portal
 app.mount("/portal", StaticFiles(directory=FRONTEND_PATH, html=True), name="frontend")
 

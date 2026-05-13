@@ -39,18 +39,166 @@
       --bg-soft: #ffffff;
       --panel: #ffffff;
       --panel-hover: #f7f9ff;
-      --line: #d8dff5;
-      --text: #0f2454;
-      --muted: #3e568a;
-      --accent: #387dff;
-      --accent-2: #11b293;
-      --danger: #dc4d73;
-      --warning: #cc8b12;
-      --icon-muted: #334d8e;
-      --metric-icon-fg: #1f3f86;
-      --metric-icon-bg: rgba(56, 125, 255, 0.16);
-      --metric-icon-border: rgba(56, 125, 255, 0.34);
-      --shadow: 0 12px 30px rgba(45, 61, 116, 0.12);
+      --line: #cbd5e1;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #2563eb;
+      --accent-2: #0d9488;
+      --danger: #e11d48;
+      --warning: #d97706;
+      --icon-muted: #64748b;
+      --metric-icon-fg: #1e40af;
+      --metric-icon-bg: rgba(37, 99, 235, 0.1);
+      --metric-icon-border: rgba(37, 99, 235, 0.2);
+      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Light Mode Overrides */
+    [data-theme='light'] body {
+      background: #f8fafc;
+    }
+
+    [data-theme='light'] .app-frame {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    [data-theme='light'] .sidebar {
+      background: #f1f5f9;
+      border-right-color: #e2e8f0;
+    }
+
+    [data-theme='light'] .nav-link:not(.active) {
+      color: #64748b;
+    }
+
+    [data-theme='light'] .nav-link:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .nav-title {
+      color: #94a3b8;
+    }
+
+    [data-theme='light'] .topbar,
+    [data-theme='light'] .panel,
+    [data-theme='light'] article.panel {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    [data-theme='light'] .search input {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .icon-btn {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      color: #64748b;
+    }
+
+    [data-theme='light'] .profile-trigger {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .status-pill {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #dcfce7;
+    }
+
+    [data-theme='light'] .btn {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      color: #334155;
+    }
+
+    [data-theme='light'] .btn:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    [data-theme='light'] .badge-pos {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    [data-theme='light'] .badge-neu {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    [data-theme='light'] input, 
+    [data-theme='light'] select, 
+    [data-theme='light'] textarea {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+
+    /* Auth Screen Light Mode */
+    [data-theme='light'] .auth-screen {
+      background: #f8fafc;
+    }
+
+    [data-theme='light'] .auth-shell {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    [data-theme='light'] .auth-copy {
+      background: #f1f5f9;
+      border-color: #e2e8f0;
+    }
+
+    [data-theme='light'] .auth-point {
+      background: #ffffff;
+      border-color: #e2e8f0;
+    }
+
+    [data-theme='light'] .auth-point strong {
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .auth-copy h1 {
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .auth-field label {
+      color: #334155;
+    }
+
+    [data-theme='light'] .auth-field input {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .auth-code-btn {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+
+    [data-theme='light'] .profile-menu {
+      background: #ffffff;
+      border-color: #e2e8f0;
+    }
+
+    [data-theme='light'] .profile-menu-name {
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .menu-item:hover {
+      background: #f1f5f9;
     }
 
     * {
@@ -388,6 +536,14 @@
       position: sticky;
       top: 0;
       height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: none; /* Hide scrollbar for Chrome/Safari too if needed, but 'none' works for FF */
+    }
+
+    .sidebar::-webkit-scrollbar {
+      display: none; /* Hide scrollbar for Chrome/Safari */
     }
 
     [data-theme='light'] .sidebar {
@@ -735,6 +891,26 @@
       background: linear-gradient(180deg, rgba(26, 36, 73, 0.96), rgba(17, 26, 56, 0.95));
     }
 
+    [data-theme='light'] .card:hover {
+      background: #ffffff;
+      border-color: var(--accent);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme='light'] .card .metric-title {
+      color: #64748b;
+    }
+
+    [data-theme='light'] .card .metric-value {
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .card:hover .metric-icon {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+
     .metric-title {
       color: var(--muted);
       color: color-mix(in srgb, var(--muted) 92%, var(--text) 8%);
@@ -750,6 +926,7 @@
       font-weight: 800;
       letter-spacing: -0.01em;
       margin: 0;
+      transition: color 200ms ease;
     }
 
     .metric-icon {
@@ -798,14 +975,12 @@
     }
 
     .nav-submenu-items {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
+      display: none;
       margin-top: 0.25rem;
     }
 
     .nav-submenu-items.open {
-      max-height: 500px;
+      display: block;
     }
 
     .nav-submenu-item {
@@ -884,7 +1059,7 @@
       background: rgba(17, 23, 48, 0.82);
       padding: 0.75rem;
       transition: all 180ms ease;
-      animation: reveal 240ms ease;
+    }
     }
 
     [data-theme='light'] .feed-item {
@@ -940,28 +1115,74 @@
       border-color: rgba(255, 107, 138, 0.3);
     }
 
+    [data-theme='light'] .feed-item {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    [data-theme='light'] .feed-item p {
+      color: #334155 !important;
+    }
+
+    [data-theme='light'] .mini-item {
+      border-bottom-color: #f1f5f9;
+    }
+
+    [data-theme='light'] .mini-item span {
+      color: #64748b;
+    }
+
+    [data-theme='light'] .mini-item strong {
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .status-select {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+
     [data-theme='light'] .badge {
       color: #2f457d !important;
-      background: rgba(56, 125, 255, 0.08) !important;
-      border-color: rgba(56, 125, 255, 0.25) !important;
+      background: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    [data-theme='light'] .badge-source {
+      color: #1e40af !important;
+      background: #eff6ff !important;
+      border-color: #bfdbfe !important;
+    }
+
+    [data-theme='light'] .badge-category {
+      color: #475569 !important;
+      background: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    [data-theme='light'] .badge-urgency {
+      color: #991b1b !important;
+      background: #fef2f2 !important;
+      border-color: #fee2e2 !important;
     }
 
     [data-theme='light'] .badge-pos {
-      color: #0e7f65 !important;
-      background: rgba(17, 178, 147, 0.12) !important;
-      border-color: rgba(17, 178, 147, 0.3) !important;
+      color: #166534 !important;
+      background: #dcfce7 !important;
+      border-color: #bbf7d0 !important;
     }
 
     [data-theme='light'] .badge-neu {
-      color: #936106 !important;
-      background: rgba(204, 139, 18, 0.12) !important;
-      border-color: rgba(204, 139, 18, 0.3) !important;
+      color: #92400e !important;
+      background: #fef3c7 !important;
+      border-color: #fde68a !important;
     }
 
     [data-theme='light'] .badge-neg {
-      color: #b22f53 !important;
-      background: rgba(220, 77, 115, 0.12) !important;
-      border-color: rgba(220, 77, 115, 0.28) !important;
+      color: #9f1239 !important;
+      background: #ffe4e6 !important;
+      border-color: #fecdd3 !important;
     }
 
     .status-select {
@@ -1459,8 +1680,7 @@
       <div class="nav-group">
         <p class="nav-title">Main</p>
         <a class="nav-link active" href="/portal/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
-        <a class="nav-link" href="/portal/survey.html"><i class="fa-solid fa-clipboard-list"></i>Survey</a>
-        <a class="nav-link nav-module-survey-builder" href="/portal/survey-builder.html"><i class="fa-solid fa-edit"></i>Survey Builder</a>
+        <a class="nav-link" href="/portal/survey-builder"><i class="fa-solid fa-clipboard-list"></i>Survey Builder</a>
       </div>
 
       <div class="nav-group" id="nav-overview-group">
@@ -1499,7 +1719,7 @@
 
       <div class="nav-group" id="nav-admin-group">
         <p class="nav-title">Admin</p>
-        <a class="nav-link nav-module-admin" id="nav-admin-monitoring" href="#admin-monitoring-panel"><i class="fa-solid fa-shield-halved"></i>System Monitoring</a>
+        <a class="nav-link nav-module-admin" id="nav-admin-monitoring" href="#operations-panel"><i class="fa-solid fa-shield-halved"></i>System Monitoring</a>
       </div>
     </aside>
 
@@ -1513,18 +1733,6 @@
           <div class="status-pill">
             <span class="status-dot"></span>
             Live sync
-          </div>
-          <div class="dropdown">
-            <button class="icon-btn" id="export-trigger" title="Export data">
-              <i class="fa-solid fa-download"></i>
-            </button>
-            <div class="dropdown-menu" id="export-menu">
-              <button class="dropdown-item" id="export-summary-csv">Summary as CSV</button>
-              <button class="dropdown-item" id="export-summary-pdf">Summary as PDF</button>
-              <button class="dropdown-item" id="export-feed-csv">Feed as CSV</button>
-              <button class="dropdown-item" id="export-feed-pdf">Feed as PDF</button>
-              <button class="dropdown-item" id="export-charts-png">Charts as PNG</button>
-            </div>
           </div>
           <button id="theme-toggle" class="icon-btn" title="Toggle theme">
             <i id="theme-icon" class="fa-solid fa-moon"></i>
@@ -1877,7 +2085,9 @@
       'survey_manager': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
       'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
       'department_resolver': ['dashboard', 'alerts', 'operations', 'social'],
-      'employee': ['dashboard', 'survey']
+      'executive_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
+      'employee': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+      'user': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
     };
 
     const defaultProfile = {
@@ -1925,23 +2135,34 @@
       const role = (userRole || 'employee').toLowerCase().replace(/[\s-]+/g, '_');
       const allowedModules = ROLE_MODULE_ACCESS[role] || ROLE_MODULE_ACCESS['employee'];
       
+      console.log('Updating visibility for role:', role, 'Allowed:', allowedModules);
+
       const moduleMap = {
-        'alerts': '.nav-module-alerts',
-        'categories': '.nav-module-categories',
-        'channels': '.nav-module-channels',
-        'operations': '.nav-module-operations',
+        'alerts': '#nav-alerts',
+        'categories': '#nav-categories',
+        'channels': '#nav-channels',
+        'operations': '#nav-operations-group',
         'survey_builder': '.nav-module-survey-builder',
-        'social': '.nav-module-social',
+        'social': '#nav-social-group',
         'reports': '#nav-reports-group',
-        'admin': '.nav-module-admin'
+        'admin': '#nav-admin-group'
       };
       
       Object.entries(moduleMap).forEach(([module, selector]) => {
         const elem = document.querySelector(selector);
         if (elem) {
-          elem.style.display = allowedModules.includes(module) ? '' : 'none';
+          const isAllowed = allowedModules.includes(module);
+          console.log(`Module ${module} (${selector}): ${isAllowed ? 'VISIBLE' : 'HIDDEN'}`);
+          elem.style.display = isAllowed ? '' : 'none';
         }
       });
+
+      // Special handling for the titles if their groups are hidden
+      const overviewGroup = document.getElementById('nav-overview-group');
+      if (overviewGroup) {
+        const hasVisibleLink = overviewGroup.querySelector('a.nav-link[style="display: none;"]') === null;
+        overviewGroup.style.display = (allowedModules.includes('alerts') || allowedModules.includes('categories') || allowedModules.includes('channels')) ? '' : 'none';
+      }
     }
 
     function showToast(message) {
@@ -2112,6 +2333,15 @@
 
         const user = data?.data || data;
         sessionStorage.setItem('sfao_user', JSON.stringify(user));
+        
+        // Ensure UI state transitions before reload to avoid layout shifts or loops
+        if (document.getElementById('auth-screen')) {
+          document.getElementById('auth-screen').classList.add('hidden');
+        }
+        if (document.getElementById('app-frame')) {
+          document.getElementById('app-frame').classList.add('visible');
+        }
+
         window.location.reload();
       } catch (err) {
         showAuthMessage('auth-message', err.message || 'Cannot reach server. Start the backend first.', 'error');
@@ -2283,14 +2513,15 @@
     function applyTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
       const icon = document.getElementById('theme-icon');
-      icon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+      if (icon) {
+        icon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+      }
       localStorage.setItem('sfao.theme', theme);
     }
 
-    function toggleExportMenu() {
-      const dropdown = document.querySelector('.dropdown');
-      const isOpen = dropdown.classList.contains('open');
-      dropdown.classList.toggle('open', !isOpen);
+    function toggleTheme() {
+      const current = getStoredTheme();
+      applyTheme(current === 'dark' ? 'light' : 'dark');
     }
 
     function toggleReportsSubmenu() {
@@ -2298,13 +2529,15 @@
       const submenu = document.getElementById('nav-reports-submenu');
       const isOpen = submenu.classList.contains('open');
 
+      console.log('Toggling submenu, current state:', isOpen);
+
       toggleBtn.classList.toggle('active', !isOpen);
       submenu.classList.toggle('open', !isOpen);
     }
 
     async function exportSummary(format) {
       try {
-        const summary = await apiJson(`${API}/summary`);
+        const summary = await apiJson(`${API}/summary`, { headers: getAuthHeaders() });
         const timestamp = new Date().toISOString().split('T')[0];
 
         if (format === 'csv') {
@@ -2314,7 +2547,6 @@
           const pdf = await generateSummaryPDF(summary);
           pdf.save(`sfao-summary-${timestamp}.pdf`);
         }
-        toggleExportMenu();
         showToast('Summary exported successfully');
       } catch (err) {
         console.error('Export error:', err);
@@ -2392,7 +2624,7 @@
       try {
         const feedParams = new URLSearchParams();
         feedParams.set('limit', '1000'); // Export more data
-        const feed = await apiJson(`${API}/feed?${feedParams.toString()}`);
+        const feed = await apiJson(`${API}/feed?${feedParams.toString()}`, { headers: getAuthHeaders() });
         const timestamp = new Date().toISOString().split('T')[0];
 
         if (format === 'csv') {
@@ -2402,7 +2634,6 @@
           const pdf = await generateFeedPDF(feed);
           pdf.save(`sfao-feed-${timestamp}.pdf`);
         }
-        toggleExportMenu();
         showToast('Feed exported successfully');
       } catch (err) {
         console.error('Export error:', err);
@@ -2472,7 +2703,6 @@
         link.href = canvas.toDataURL();
         link.click();
 
-        toggleExportMenu();
         showToast('Charts exported as PNG');
       } catch (err) {
         console.error('Export error:', err);
@@ -2732,8 +2962,8 @@
             body: JSON.stringify({
               name: profile.name,
               timezone: profile.timezone,
-              refresh_interval: Number(profile.refreshInterval),
-              notifications_enabled: Boolean(profile.notifications),
+              refresh_interval: Number(profile.refresh_interval || profile.refreshInterval),
+              notifications_enabled: Boolean(profile.notifications_enabled || profile.notifications),
             })
           });
         } catch (_) {
@@ -2778,12 +3008,6 @@
       startAutoRefresh(profile.refreshInterval);
 
       document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-      document.getElementById('export-trigger').addEventListener('click', toggleExportMenu);
-      document.getElementById('export-summary-csv').addEventListener('click', () => exportSummary('csv'));
-      document.getElementById('export-summary-pdf').addEventListener('click', () => exportSummary('pdf'));
-      document.getElementById('export-feed-csv').addEventListener('click', () => exportFeed('csv'));
-      document.getElementById('export-feed-pdf').addEventListener('click', () => exportFeed('pdf'));
-      document.getElementById('export-charts-png').addEventListener('click', exportChartsPNG);
 
       // Reports submenu functionality
       document.getElementById('nav-reports-toggle').addEventListener('click', toggleReportsSubmenu);
@@ -2807,6 +3031,12 @@
         event.preventDefault();
         exportChartsPNG();
       });
+
+      // Fix for submenu click propagation
+      document.getElementById('nav-reports-submenu').addEventListener('click', (event) => {
+        event.stopPropagation();
+      });
+
       document.getElementById('notification-trigger').addEventListener('click', () => toggleNotificationPanel());
       document.getElementById('mark-notifications-read').addEventListener('click', markNotificationsRead);
       document.getElementById('profile-trigger').addEventListener('click', () => toggleProfileMenu());
@@ -2816,26 +3046,28 @@
       document.getElementById('save-settings').addEventListener('click', saveProfileSettings);
       document.getElementById('reset-settings').addEventListener('click', resetProfileSettings);
 
+      // Global click handler for closing menus
       document.addEventListener('click', (event) => {
         const menu = document.getElementById('profile-menu');
         const trigger = document.getElementById('profile-trigger');
         const notificationPanel = document.getElementById('notification-panel');
         const notificationTrigger = document.getElementById('notification-trigger');
-        const exportTrigger = document.getElementById('export-trigger');
-        const exportMenu = document.getElementById('export-menu');
         const reportsToggle = document.getElementById('nav-reports-toggle');
         const reportsSubmenu = document.getElementById('nav-reports-submenu');
+        const navReportsGroup = document.getElementById('nav-reports-group');
 
-        if (!menu.contains(event.target) && !trigger.contains(event.target)) {
+        // Close Profile Menu
+        if (menu && trigger && !menu.contains(event.target) && !trigger.contains(event.target)) {
           toggleProfileMenu(false);
         }
-        if (!notificationPanel.contains(event.target) && !notificationTrigger.contains(event.target)) {
+
+        // Close Notification Panel
+        if (notificationPanel && notificationTrigger && !notificationPanel.contains(event.target) && !notificationTrigger.contains(event.target)) {
           toggleNotificationPanel(false);
         }
-        if (!exportMenu.contains(event.target) && !exportTrigger.contains(event.target)) {
-          document.querySelector('.dropdown').classList.remove('open');
-        }
-        if (!reportsSubmenu.contains(event.target) && !reportsToggle.contains(event.target)) {
+
+        // Close Reports Submenu if clicking outside the entire reports group
+        if (reportsSubmenu && reportsToggle && navReportsGroup && !navReportsGroup.contains(event.target)) {
           reportsToggle.classList.remove('active');
           reportsSubmenu.classList.remove('open');
         }
@@ -2883,37 +3115,68 @@
         filters.alertsOnly = true;
         document.getElementById('alerts-toggle').classList.add('primary');
         renderFilteredFeed();
-        document.getElementById('feed-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const target = document.getElementById('feed-panel');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showToast('Showing urgent alerts');
+        }
       });
 
       document.getElementById('nav-categories').addEventListener('click', (event) => {
         event.preventDefault();
-        document.getElementById('category-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        showToast('Use Category filter to focus your view');
+        const target = document.getElementById('category-panel');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showToast('Focusing on categories');
+        }
       });
 
       document.getElementById('nav-channels').addEventListener('click', (event) => {
         event.preventDefault();
-        document.getElementById('source-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        showToast('Use Channel filter to focus your view');
+        const target = document.getElementById('source-panel');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showToast('Focusing on channels');
+        }
       });
 
       document.getElementById('nav-operations').addEventListener('click', (event) => {
         event.preventDefault();
-        document.getElementById('operations-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        loadQueue();
+        const target = document.getElementById('operations-panel');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (typeof loadQueue === 'function') loadQueue();
+            showToast('Operations board loaded');
+        }
       });
 
       document.getElementById('nav-social').addEventListener('click', (event) => {
         event.preventDefault();
-        document.getElementById('social-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        loadSocialPosts();
+        const target = document.getElementById('social-panel');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (typeof loadSocialPosts === 'function') loadSocialPosts();
+            showToast('Monitoring feed loaded');
+        }
       });
 
-      document.getElementById('nav-admin').addEventListener('click', (event) => {
-        event.preventDefault();
-        document.getElementById('buyer-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
+      const dashboardBtn = document.querySelector('a[href="/portal/dashboard"]');
+      if (dashboardBtn) {
+        dashboardBtn.addEventListener('click', (event) => {
+          event.preventDefault();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          showToast('Returning to dashboard');
+        });
+      }
+
+      const adminBtn = document.getElementById('nav-admin-monitoring');
+      if (adminBtn) {
+        adminBtn.addEventListener('click', (event) => {
+          event.preventDefault();
+          const target = document.getElementById('admin-monitoring-panel') || document.getElementById('operations-panel');
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
 
       document.getElementById('queue-department-filter').addEventListener('change', loadQueue);
       document.getElementById('queue-status-filter').addEventListener('change', loadQueue);
@@ -3017,10 +3280,21 @@
     }
 
     function updateCards(summary) {
-      document.getElementById('stat-total').textContent = summary.total || 0;
-      document.getElementById('stat-positive').textContent = summary.sentiments?.Positive || 0;
-      document.getElementById('stat-negative').textContent = summary.sentiments?.Negative || 0;
-      document.getElementById('stat-urgency').textContent = summary.urgencies?.High || 0;
+      const total = summary.total || 0;
+      const positive = summary.sentiments?.Positive || 0;
+      const negative = summary.sentiments?.Negative || 0;
+      const urgency = summary.urgencies?.High || 0;
+
+      const elTotal = document.getElementById('stat-total');
+      const elPos = document.getElementById('stat-positive');
+      const elNeg = document.getElementById('stat-negative');
+      const elUrg = document.getElementById('stat-urgency');
+
+      if (elTotal.textContent !== String(total)) elTotal.textContent = total;
+      if (elPos.textContent !== String(positive)) elPos.textContent = positive;
+      if (elNeg.textContent !== String(negative)) elNeg.textContent = negative;
+      if (elUrg.textContent !== String(urgency)) elUrg.textContent = urgency;
+
       document.getElementById('last-updated').textContent = `Last update: ${new Date().toLocaleTimeString()}`;
     }
 
@@ -3102,19 +3376,19 @@
         return;
       }
 
-      container.innerHTML = feed.slice(0, 15).map((item) => `
+      const newHtml = feed.slice(0, 15).map((item) => `
         <div class="feed-item ${urgencyClass(item.urgency)}">
           <div class="flex items-start justify-between gap-2">
             <div>
               <div class="flex items-center gap-2 mb-2">
                 <span class="${sentimentClass(item.sentiment)}">${item.sentiment}</span>
-                <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1);">${item.source}</span>
+                <span class="badge badge-source">${item.source}</span>
                 <span class="muted">${new Date(item.created_at || Date.now()).toLocaleString()}</span>
               </div>
               <p class="text-sm leading-6" style="margin:0; color:var(--text);">${item.text || ''}</p>
               <div class="flex gap-2 mt-2">
-                <span class="badge" style="color:#d8e3ff; border-color:rgba(124,142,214,0.35); background:rgba(17,23,48,0.7);">${item.category || 'General'}</span>
-                <span class="badge" style="color:#ffcfd9; border-color:rgba(255,107,138,0.34); background:rgba(255,107,138,0.1);">${item.urgency || 'Low'}</span>
+                <span class="badge badge-category">${item.category || 'General'}</span>
+                <span class="badge badge-urgency">${item.urgency || 'Low'}</span>
               </div>
             </div>
             <select class="status-select" onchange="updateStatus(${item.id}, this.value)">
@@ -3125,6 +3399,10 @@
           </div>
         </div>
       `).join('');
+
+      if (container.innerHTML !== newHtml) {
+        container.innerHTML = newHtml;
+      }
     }
 
     async function loadQueue() {
@@ -3321,6 +3599,8 @@
           apiJson(`${API}/feed?${feedParams.toString()}`, { headers: getAuthHeaders() })
         ]);
 
+        if (!summary || !feed) throw new Error("Incomplete data from server");
+
         latestFeed = feed || [];
         latestNotifications = deriveNotifications(latestFeed);
         latestSummary = summary;
@@ -3358,10 +3638,33 @@
     primeDashboardShell();
     if (savedUser) {
       currentUser = savedUser;
-      initUiControls().then(refresh);
+      if (document.getElementById('auth-screen')) document.getElementById('auth-screen').classList.add('hidden');
+      if (document.getElementById('app-frame')) document.getElementById('app-frame').classList.add('visible');
+      initUiControls().then(() => {
+        refresh();
+        
+        // Handle export redirect from other pages
+        const params = new URLSearchParams(window.location.search);
+        const exportType = params.get('export');
+        if (exportType) {
+          setTimeout(() => {
+            switch(exportType) {
+              case 'summary-csv': exportSummary('csv'); break;
+              case 'summary-pdf': exportSummary('pdf'); break;
+              case 'feed-csv': exportFeed('csv'); break;
+              case 'feed-pdf': exportFeed('pdf'); break;
+              case 'charts-png': exportChartsPNG(); break;
+            }
+            // Clean URL after export
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }, 1500);
+        }
+      });
     } else {
-      // Load demo data even without login
-      initUiControls().then(refresh);
+      // Show login if no user
+      if (document.getElementById('auth-screen')) document.getElementById('auth-screen').classList.remove('hidden');
+      if (document.getElementById('app-frame')) document.getElementById('app-frame').classList.remove('visible');
+      initUiControls();
     }
   </script>
 </body>

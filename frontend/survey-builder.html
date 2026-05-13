@@ -36,27 +36,82 @@
     }
 
     [data-theme='light'] {
-      --bg: #f3f6ff;
+      --bg: #f8fafc;
       --bg-soft: #ffffff;
       --panel: #ffffff;
-      --panel-hover: #f7f9ff;
-      --line: #d8dff5;
-      --text: #0f2454;
-      --muted: #3e568a;
-      --accent: #387dff;
-      --accent-2: #11b293;
-      --danger: #dc4d73;
-      --warning: #cc8b12;
-      --icon-muted: #334d8e;
-      --metric-icon-fg: #1f3f86;
-      --metric-icon-bg: rgba(56, 125, 255, 0.16);
-      --metric-icon-border: rgba(56, 125, 255, 0.34);
-      --shadow: 0 12px 30px rgba(45, 61, 116, 0.12);
+      --panel-hover: #f1f5f9;
+      --line: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-2: #0d9488;
+      --danger: #e11d48;
+      --warning: #d97706;
+      --icon-muted: #94a3b8;
+      --metric-icon-fg: #1e40af;
+      --metric-icon-bg: rgba(37, 99, 235, 0.1);
+      --metric-icon-border: rgba(37, 99, 235, 0.2);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    [data-theme='light'] body {
+      background: #f8fafc;
+    }
+
+    [data-theme='light'] .app-frame {
+      background: #ffffff;
+      border-color: #e2e8f0;
+    }
+
+    [data-theme='light'] .sidebar {
+      background: #f1f5f9;
+      border-right-color: #e2e8f0;
+    }
+
+    [data-theme='light'] .panel,
+    [data-theme='light'] .topbar {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme='light'] .nav-link {
+      color: #64748b;
+    }
+
+    [data-theme='light'] .nav-link:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    [data-theme='light'] .nav-link.active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    [data-theme='light'] input, 
+    [data-theme='light'] select, 
+    [data-theme='light'] textarea,
+    [data-theme='light'] .bg-gray-800,
+    [data-theme='light'] .bg-gray-700 {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+
+    [data-theme='light'] .text-gray-400 {
+      color: #64748b !important;
+    }
+
+    [data-theme='light'] .btn-danger {
+      background: #fff1f2;
+      color: #e11d48;
+      border-color: #fecdd3;
     }
 
     * {
       scrollbar-width: thin;
-      scrollbar-color: #3b4b84 transparent;
+      scrollbar-color: #cbd5e1 transparent;
     }
 
     body {
@@ -94,6 +149,14 @@
       overflow: hidden;
       background: rgba(8, 13, 27, 0.55);
       box-shadow: 0 22px 50px rgba(4, 8, 22, 0.35);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .app-frame.visible {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .sidebar {
@@ -103,6 +166,15 @@
       display: flex;
       flex-direction: column;
       gap: 2rem;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      display: none;
     }
 
     [data-theme='light'] .sidebar {
@@ -495,6 +567,32 @@
       50% { opacity: 0.5; }
     }
 
+    .nav-submenu-toggle i:last-child {
+      font-size: 0.75rem;
+      transition: transform 200ms ease;
+    }
+
+    .nav-submenu-toggle.active i:last-child {
+      transform: rotate(180deg);
+    }
+
+    .nav-submenu-items {
+      display: none;
+      flex-direction: column;
+      gap: 0.25rem;
+      padding-left: 1.5rem;
+      margin-top: 0.25rem;
+    }
+
+    .nav-submenu-items.open {
+      display: flex;
+    }
+
+    .nav-submenu-item {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
     @media (max-width: 768px) {
       .shell {
         grid-template-columns: 1fr;
@@ -526,8 +624,7 @@
       <div class="nav-group">
         <p class="nav-title">Main</p>
         <a class="nav-link" href="/portal/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
-        <a class="nav-link" href="/portal/survey.html"><i class="fa-solid fa-clipboard-list"></i>Survey</a>
-        <a class="nav-link active" href="/portal/survey-builder.html"><i class="fa-solid fa-edit"></i>Survey Builder</a>
+        <a class="nav-link active nav-module-survey-builder" href="/portal/survey-builder"><i class="fa-solid fa-clipboard-list"></i>Survey Builder</a>
       </div>
 
       <div class="nav-group" id="nav-overview-group">
@@ -547,9 +644,26 @@
         <a class="nav-link nav-module-social" id="nav-social" href="/portal/dashboard#social-panel"><i class="fa-solid fa-hashtag"></i>Monitoring</a>
       </div>
 
+      <div class="nav-group" id="nav-reports-group">
+        <p class="nav-title">Reports</p>
+        <div class="nav-submenu">
+          <button class="nav-link nav-submenu-toggle" id="nav-reports-toggle">
+            <i class="fa-solid fa-file-chart-line"></i>Export Reports
+            <i class="fa-solid fa-chevron-down nav-submenu-icon"></i>
+          </button>
+          <div class="nav-submenu-items" id="nav-reports-submenu">
+            <a class="nav-link nav-submenu-item" id="nav-export-summary-csv" href="#"><i class="fa-solid fa-file-csv"></i>Summary CSV</a>
+            <a class="nav-link nav-submenu-item" id="nav-export-summary-pdf" href="#"><i class="fa-solid fa-file-pdf"></i>Summary PDF</a>
+            <a class="nav-link nav-submenu-item" id="nav-export-feed-csv" href="#"><i class="fa-solid fa-file-csv"></i>Feed CSV</a>
+            <a class="nav-link nav-submenu-item" id="nav-export-feed-pdf" href="#"><i class="fa-solid fa-file-pdf"></i>Feed PDF</a>
+            <a class="nav-link nav-submenu-item" id="nav-export-charts-png" href="#"><i class="fa-solid fa-image"></i>Charts PNG</a>
+          </div>
+        </div>
+      </div>
+
       <div class="nav-group" id="nav-admin-group">
         <p class="nav-title">Admin</p>
-        <a class="nav-link nav-module-admin" id="nav-admin" href="/portal/dashboard#buyer-panel"><i class="fa-solid fa-cogs"></i>Buyer Config</a>
+        <a class="nav-link nav-module-admin" id="nav-admin-monitoring" href="/portal/dashboard#operations-panel"><i class="fa-solid fa-shield-halved"></i>System Monitoring</a>
       </div>
     </aside>
 
@@ -572,8 +686,8 @@
             <span id="notif-count" class="notif-count">0</span>
           </button>
           <button id="profile-trigger" class="profile-trigger" title="Open profile menu">
-            <span class="avatar" id="avatar-initials">FL</span>
-            <span class="text-xs font-bold" id="user-name-display">Felix</span>
+            <span class="avatar" id="avatar-initials">--</span>
+            <span class="text-xs font-bold" id="user-name-display">Loading...</span>
             <i class="fa-solid fa-chevron-down text-xs"></i>
           </button>
         </div>
@@ -581,8 +695,8 @@
 
       <div id="profile-menu" class="profile-menu">
         <div class="px-2 py-2 border-b" style="border-color:rgba(95,117,197,0.25);">
-          <p id="profile-menu-name" class="text-sm font-bold m-0">Felix</p>
-          <p id="profile-menu-role" class="muted m-0">Executive Admin</p>
+          <p id="profile-menu-name" class="text-sm font-bold m-0">User</p>
+          <p id="profile-menu-role" class="muted m-0">Admin</p>
           <p id="profile-menu-dept" class="muted m-0" style="font-size:0.75rem;margin-top:0.25rem;"></p>
         </div>
         <button class="menu-item" id="open-profile-settings"><i class="fa-solid fa-user-gear"></i>Profile settings</button>
@@ -658,47 +772,90 @@
       }
     }
 
-    function getAuthToken() {
-      const direct = sessionStorage.getItem('sfao_token');
-      if (direct) return direct;
-      const user = getSessionUser();
-      return user?.access_token || null;
-    }
-
-    function requireAuthOrRedirect() {
-      const token = getAuthToken();
-      if (!token) {
-        window.location.href = '/portal/dashboard';
-        return false;
-      }
-      return true;
-    }
-
     function getAuthHeaders(extra = {}) {
-      const token = getAuthToken();
-      return {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        ...extra
-      };
+      const headers = { ...extra };
+      if (currentUser?.access_token) {
+        headers['Authorization'] = `Bearer ${currentUser.access_token}`;
+      }
+      return headers;
+    }
+
+    async function apiCall(url, options = {}) {
+      const { timeoutMs = 15000, ...fetchOptions } = options;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(url, { ...fetchOptions, signal: controller.signal });
+        if (response.status === 401) {
+          sessionStorage.removeItem('sfao_user');
+          currentUser = null;
+          // Only redirect if we're not already on the login page/portal
+          if (window.location.pathname !== '/portal') {
+             window.location.href = '/portal';
+          }
+          throw new Error('Session expired');
+        }
+        return response;
+      } catch (error) {
+        if (error && error.name === 'AbortError') {
+          throw new Error('Request timed out. Check server connection.');
+        }
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function apiJson(url, options = {}) {
+      const response = await apiCall(url, options);
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_) {
+        data = null;
+      }
+      if (!response.ok) {
+        throw new Error(data?.detail || data?.message || `Request failed (${response.status})`);
+      }
+      return data;
+    }
+
+    function getStoredTheme() {
+      return localStorage.getItem('sfao.theme') || 'dark';
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const icon = document.getElementById('theme-icon');
+      if (icon) {
+        icon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+      }
+      localStorage.setItem('sfao.theme', theme);
+    }
+
+    function toggleTheme() {
+      const current = getStoredTheme();
+      applyTheme(current === 'dark' ? 'light' : 'dark');
     }
 
     async function loadUserProfile() {
-      const fallbackUser = getSessionUser();
-      try {
-        const res = await fetch(`${API}/auth/me`, { headers: getAuthHeaders() });
-        if (res.ok) {
-          const payload = await res.json();
-          currentUser = payload?.data || payload;
-          applyUserProfile(currentUser);
-          return;
+      currentUser = getSessionUser();
+      if (!currentUser) {
+        if (window.location.pathname !== '/portal') {
+          window.location.href = '/portal';
         }
+        return;
+      }
+      applyUserProfile(currentUser);
+
+      try {
+        const data = await apiJson(`${API}/auth/me`, { headers: getAuthHeaders() });
+        currentUser = { ...currentUser, ...(data?.data || data) };
+        sessionStorage.setItem('sfao_user', JSON.stringify(currentUser));
+        applyUserProfile(currentUser);
       } catch (err) {
         console.error('Failed to load user profile:', err);
-      }
-
-      if (fallbackUser) {
-        currentUser = fallbackUser;
-        applyUserProfile(currentUser);
       }
     }
 
@@ -709,26 +866,35 @@
       document.getElementById('profile-menu-dept').textContent = user.department || '';
       document.getElementById('avatar-initials').textContent = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
       updateMenuVisibility(user.role);
+      
+      const frame = document.getElementById('app-frame');
+      if (frame) frame.classList.add('visible');
     }
 
     function updateMenuVisibility(userRole) {
       const role = (userRole || 'employee').toLowerCase().replace(/[\s-]+/g, '_');
-      const allowedModules = {
-        'super_admin': ['alerts', 'categories', 'channels', 'operations', 'social', 'admin'],
-        'survey_admin': ['alerts', 'categories', 'channels', 'operations', 'social', 'admin'],
-        'survey_manager': ['alerts', 'categories', 'channels', 'operations', 'social'],
-        'analyst': ['alerts', 'categories', 'channels', 'operations'],
-        'department_resolver': ['alerts', 'operations'],
-        'employee': []
-      }[role] || [];
+      const ROLE_MODULE_ACCESS = {
+        'super_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
+        'survey_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+        'survey_manager': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+        'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+        'department_resolver': ['dashboard', 'alerts', 'operations', 'social'],
+        'executive_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
+        'employee': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+        'user': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
+      };
+      
+      const allowedModules = ROLE_MODULE_ACCESS[role] || ROLE_MODULE_ACCESS['employee'];
 
       const moduleMap = {
-        'alerts': '.nav-module-alerts',
-        'categories': '.nav-module-categories',
-        'channels': '.nav-module-channels',
-        'operations': '.nav-module-operations',
-        'social': '.nav-module-social',
-        'admin': '.nav-module-admin'
+        'alerts': '#nav-alerts',
+        'categories': '#nav-categories',
+        'channels': '#nav-channels',
+        'operations': '#nav-operations-group',
+        'survey_builder': '.nav-module-survey-builder',
+        'social': '#nav-social-group',
+        'reports': '#nav-reports-group',
+        'admin': '#nav-admin-group'
       };
 
       Object.entries(moduleMap).forEach(([module, selector]) => {
@@ -737,6 +903,12 @@
           elem.style.display = allowedModules.includes(module) ? '' : 'none';
         }
       });
+
+      // Special handling for the titles if their groups are hidden
+      const overviewGroup = document.getElementById('nav-overview-group');
+      if (overviewGroup) {
+        overviewGroup.style.display = (allowedModules.includes('alerts') || allowedModules.includes('categories') || allowedModules.includes('channels')) ? '' : 'none';
+      }
     }
 
     function showToast(message) {
@@ -770,9 +942,7 @@
 
     async function loadSurveyTemplates() {
       try {
-        const res = await fetch(`${API}/survey-templates`, { headers: getAuthHeaders() });
-        if (!res.ok) throw new Error('Failed to load templates');
-        const templates = await res.json();
+        const templates = await apiJson(`${API}/survey-templates`, { headers: getAuthHeaders() });
         updateSurveyTemplates(templates);
       } catch (err) {
         console.error('Load templates error:', err);
@@ -875,69 +1045,134 @@
         questions: JSON.stringify(questions),
       };
       try {
-        const res = await fetch(`${API}/survey-templates`, {
+        await apiJson(`${API}/survey-templates`, {
           method: 'POST',
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error('Failed to create');
         form.reset();
         document.getElementById('questions-builder').innerHTML = '';
+        addQuestionField();
         loadSurveyTemplates();
         showToast('Template created successfully');
       } catch (err) {
         console.error('Create template error:', err);
-        showToast('Failed to create template');
+        showToast(err.message || 'Failed to create template');
       }
     }
 
     // Theme toggle
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      const isLight = document.documentElement.hasAttribute('data-theme');
-      if (isLight) {
-        document.documentElement.removeAttribute('data-theme');
-        document.getElementById('theme-icon').className = 'fa-solid fa-moon';
-        localStorage.setItem('sfao.theme', 'dark');
-      } else {
-        document.documentElement.setAttribute('data-theme', 'light');
-        document.getElementById('theme-icon').className = 'fa-solid fa-sun';
-        localStorage.setItem('sfao.theme', 'light');
-      }
-    });
-
-    // Load theme
-    if (localStorage.getItem('sfao.theme') === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.getElementById('theme-icon').className = 'fa-solid fa-sun';
-    }
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
 
     // Profile menu
     document.getElementById('profile-trigger').addEventListener('click', (e) => {
       e.stopPropagation();
       document.getElementById('profile-menu').classList.toggle('show');
+      document.getElementById('notification-panel').classList.remove('show');
     });
 
-    document.addEventListener('click', () => {
-      document.getElementById('profile-menu').classList.remove('show');
+    // Notification panel
+    const notifTrigger = document.getElementById('notification-trigger');
+    if (notifTrigger) {
+      notifTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('notification-panel').classList.toggle('show');
+        document.getElementById('profile-menu').classList.remove('show');
+      });
+    }
+
+    document.addEventListener('click', (event) => {
+      const menu = document.getElementById('profile-menu');
+      const trigger = document.getElementById('profile-trigger');
+      const notifPanel = document.getElementById('notification-panel');
+      const notifBtn = document.getElementById('notification-trigger');
+      const reportsToggle = document.getElementById('nav-reports-toggle');
+      const reportsSubmenu = document.getElementById('nav-reports-submenu');
+      const navReportsGroup = document.getElementById('nav-reports-group');
+
+      if (menu && !menu.contains(event.target) && !trigger.contains(event.target)) {
+        menu.classList.remove('show');
+      }
+
+      if (notifPanel && !notifPanel.contains(event.target) && !notifBtn.contains(event.target)) {
+        notifPanel.classList.remove('show');
+      }
+
+      if (reportsSubmenu && reportsToggle && navReportsGroup && !navReportsGroup.contains(event.target)) {
+        reportsToggle.classList.remove('active');
+        reportsSubmenu.classList.remove('open');
+      }
+    });
+
+    function toggleReportsSubmenu() {
+      const toggle = document.getElementById('nav-reports-toggle');
+      const menu = document.getElementById('nav-reports-submenu');
+      if (toggle && menu) {
+        toggle.classList.toggle('active');
+        menu.classList.toggle('open');
+      }
+    }
+
+    document.getElementById('nav-reports-toggle').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleReportsSubmenu();
+    });
+
+    // Helper for exports from Survey Builder (Redirects to Dashboard with toast)
+    const handleExportRedirect = (type) => {
+      showToast(`Redirecting to dashboard to export ${type.toUpperCase()}`);
+      setTimeout(() => {
+        window.location.href = `/portal/dashboard?export=${type}`;
+      }, 1000);
+    };
+
+    document.getElementById('nav-export-summary-csv').addEventListener('click', (e) => { e.preventDefault(); handleExportRedirect('summary-csv'); });
+    document.getElementById('nav-export-summary-pdf').addEventListener('click', (e) => { e.preventDefault(); handleExportRedirect('summary-pdf'); });
+    document.getElementById('nav-export-feed-csv').addEventListener('click', (e) => { e.preventDefault(); handleExportRedirect('feed-csv'); });
+    document.getElementById('nav-export-feed-pdf').addEventListener('click', (e) => { e.preventDefault(); handleExportRedirect('feed-pdf'); });
+    document.getElementById('nav-export-charts-png').addEventListener('click', (e) => { e.preventDefault(); handleExportRedirect('charts-png'); });
+
+    document.getElementById('nav-reports-submenu').addEventListener('click', (e) => {
+      e.stopPropagation();
     });
 
     // Logout
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      sessionStorage.removeItem('sfao_token');
-      sessionStorage.removeItem('sfao_user');
-      window.location.href = '/portal';
-    });
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('sfao_token');
+        sessionStorage.removeItem('sfao_user');
+        window.location.href = '/portal';
+      });
+    }
 
     // Event listeners
-    document.getElementById('create-template-form').addEventListener('submit', handleCreateTemplate);
-    document.getElementById('add-question-btn').addEventListener('click', addQuestionField);
+    const templateForm = document.getElementById('create-template-form');
+    if (templateForm) templateForm.addEventListener('submit', handleCreateTemplate);
+    
+    const addQBtn = document.getElementById('add-question-btn');
+    if (addQBtn) addQBtn.addEventListener('click', addQuestionField);
 
     // Initialize
-    if (requireAuthOrRedirect()) {
-      loadUserProfile();
-      loadSurveyTemplates();
-      addQuestionField(); // Add default question field
+    applyTheme(getStoredTheme());
+    
+    // Immediate visibility if session exists
+    currentUser = getSessionUser();
+    if (currentUser) {
+      applyUserProfile(currentUser);
     }
+
+    loadUserProfile().then(() => {
+      loadSurveyTemplates();
+      if (document.querySelectorAll('#questions-builder > div').length === 0) {
+        addQuestionField(); 
+      }
+    }).catch(err => {
+      console.error('Core init failure:', err);
+      const frame = document.getElementById('app-frame');
+      if (frame) frame.classList.add('visible');
+    });
   </script>
 </body>
 </html>

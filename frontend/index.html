@@ -11,8 +11,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <script>
-    // Simple session check - demo mode: always show dashboard
-    document.documentElement.classList.add('has-session');
+    // Simple session check: set `has-session` only if a saved user session exists
+    try {
+      const saved = sessionStorage.getItem('sfao_user');
+      if (saved) document.documentElement.classList.add('has-session');
+      else document.documentElement.classList.remove('has-session');
+    } catch (e) {
+      document.documentElement.classList.remove('has-session');
+    }
   </script>
   <style>
     :root {
@@ -539,6 +545,7 @@
       display: flex;
       flex-direction: column;
       overflow-y: auto;
+      overflow-x: hidden;
       scrollbar-width: none; /* Hide scrollbar for Chrome/Safari too if needed, but 'none' works for FF */
     }
 
@@ -977,6 +984,8 @@
     .nav-submenu-items {
       display: none;
       margin-top: 0.25rem;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .nav-submenu-items.open {
@@ -987,6 +996,9 @@
       padding-left: 2rem;
       font-size: 0.875rem;
       opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .nav-submenu-item:hover {
@@ -1059,7 +1071,6 @@
       background: rgba(17, 23, 48, 0.82);
       padding: 0.75rem;
       transition: all 180ms ease;
-    }
     }
 
     [data-theme='light'] .feed-item {
@@ -1679,8 +1690,8 @@
 
       <div class="nav-group">
         <p class="nav-title">Main</p>
-        <a class="nav-link active" href="/portal/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
-        <a class="nav-link" href="/portal/survey-builder"><i class="fa-solid fa-clipboard-list"></i>Survey Builder</a>
+        <a class="nav-link active" href="#dashboard" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+        <a class="nav-link nav-module-survey-builder" href="survey-builder.html"><i class="fa-solid fa-clipboard-list"></i>Survey Builder</a>
       </div>
 
       <div class="nav-group" id="nav-overview-group">
@@ -1720,6 +1731,7 @@
       <div class="nav-group" id="nav-admin-group">
         <p class="nav-title">Admin</p>
         <a class="nav-link nav-module-admin" id="nav-admin-monitoring" href="#operations-panel"><i class="fa-solid fa-shield-halved"></i>System Monitoring</a>
+        <a class="nav-link nav-module-admin" id="nav-admin-manage-users" href="manage-users.html"><i class="fa-solid fa-users-gear"></i>Manage Users</a>
       </div>
     </aside>
 
@@ -1756,7 +1768,7 @@
           <p id="profile-menu-dept" class="muted m-0" style="font-size:0.75rem;margin-top:0.25rem;"></p>
         </div>
         <button class="menu-item" id="open-profile-settings"><i class="fa-solid fa-user-gear"></i>Profile settings</button>
-        <button class="menu-item" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
+        <button class="menu-item" id="logout-btn" onclick="logoutUser(); return false;"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
       </div>
 
       <div id="notification-panel" class="notification-panel">
@@ -1948,7 +1960,7 @@
       </div>
       <div class="form-row">
         <label for="profile-role">Role</label>
-        <select id="profile-role">
+        <select id="profile-role" disabled title="Role is managed by administrators">
           <option>User</option>
           <option>Executive Admin</option>
           <option>Operations Manager</option>
@@ -2081,6 +2093,7 @@
 
     const ROLE_MODULE_ACCESS = {
       'super_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
+      'admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
       'survey_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
       'survey_manager': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
       'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
@@ -2332,17 +2345,37 @@
         });
 
         const user = data?.data || data;
+        // Persist session
         sessionStorage.setItem('sfao_user', JSON.stringify(user));
-        
-        // Ensure UI state transitions before reload to avoid layout shifts or loops
-        if (document.getElementById('auth-screen')) {
-          document.getElementById('auth-screen').classList.add('hidden');
-        }
-        if (document.getElementById('app-frame')) {
-          document.getElementById('app-frame').classList.add('visible');
+        currentUser = user;
+
+        // SPA transition: hide auth screen and show app frame without full reload
+        try {
+          document.documentElement.classList.add('has-session');
+          if (document.getElementById('auth-screen')) document.getElementById('auth-screen').classList.add('hidden');
+          if (document.getElementById('app-frame')) document.getElementById('app-frame').classList.add('visible');
+        } catch (err) {
+          // ignore
         }
 
-        window.location.reload();
+        // Initialize UI controls and refresh data
+        initUiControls().then(() => {
+          // Small delay to ensure DOM is fully ready before using profile menu
+          setTimeout(() => {
+            const profileTrigger = document.getElementById('profile-trigger');
+            if (profileTrigger && !profileTrigger._listenerAttached) {
+              profileTrigger.addEventListener('click', () => {
+                console.log('Profile trigger clicked (post-login)');
+                toggleProfileMenu();
+              });
+              profileTrigger._listenerAttached = true;
+            }
+          }, 100);
+          refresh();
+        }).catch(() => {
+          // If init fails, show auth screen again
+          if (document.getElementById('auth-screen')) document.getElementById('auth-screen').classList.remove('hidden');
+        });
       } catch (err) {
         showAuthMessage('auth-message', err.message || 'Cannot reach server. Start the backend first.', 'error');
       }
@@ -2472,10 +2505,11 @@
       try {
         const response = await fetch(url, { ...fetchOptions, signal: controller.signal });
         if (response.status === 401) {
-          // Token invalid, clear session and reload to show login.
+          // Token invalid - clear session state. Do NOT reload the page here; let callers handle UX.
           sessionStorage.removeItem('sfao_user');
           currentUser = null;
-          window.location.reload();
+          // Ensure CSS shows auth-screen (best-effort)
+          try { document.documentElement.classList.remove('has-session'); } catch (e) {}
           throw new Error('Session expired');
         }
         return response;
@@ -2687,7 +2721,11 @@
 
     async function exportChartsPNG() {
       try {
-        const chartsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3');
+        // Try multiple selectors for chart containers
+        let chartsContainer = document.querySelector('.chart-grid');
+        if (!chartsContainer) {
+          chartsContainer = document.querySelector('section:has(canvas)');
+        }
         if (!chartsContainer) {
           showToast('No charts found to export');
           return;
@@ -2695,7 +2733,8 @@
 
         const canvas = await html2canvas(chartsContainer, {
           backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg'),
-          scale: 2
+          scale: 2,
+          logging: false
         });
 
         const link = document.createElement('a');
@@ -2706,7 +2745,7 @@
         showToast('Charts exported as PNG');
       } catch (err) {
         console.error('Export error:', err);
-        showToast('Export failed');
+        showToast('PNG export failed - try CSV instead');
       }
     }
 
@@ -2781,7 +2820,7 @@
       return {
         name: document.getElementById('profile-name').value.trim() || defaultProfile.name,
         email: currentUser?.email || document.getElementById('profile-email').value.trim() || defaultProfile.email,
-        role: document.getElementById('profile-role').value,
+        role: currentUser?.role || document.getElementById('profile-role').value,
         timezone: document.getElementById('profile-timezone').value,
         refreshInterval: document.getElementById('refresh-interval').value,
         notifications: document.getElementById('notif-toggle').checked
@@ -2978,8 +3017,36 @@
     }
 
     function logoutUser() {
-      sessionStorage.removeItem('sfao_user');
-      window.location.reload();
+      try {
+        sessionStorage.removeItem('sfao_user');
+        currentUser = null;
+
+        // SPA-friendly logout: hide app frame and show auth screen (login)
+        const appFrame = document.getElementById('app-frame');
+        const authScreen = document.getElementById('auth-screen');
+        if (appFrame) appFrame.classList.remove('visible');
+        if (authScreen) authScreen.classList.remove('hidden');
+
+        // Ensure login mode is selected and clear sensitive inputs
+        try { showAuthMode('login'); } catch (e) {}
+        const pw = document.getElementById('login-password'); if (pw) pw.value = '';
+
+        // Remove session indicator class so CSS shows the auth-screen
+        try { document.documentElement.classList.remove('has-session'); } catch (e) {}
+
+        showToast('Signed out');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        console.error('Logout error:', err);
+        // Fallback to root navigation
+        window.location.href = '/';
+      }
+    }
+
+    // Logout button onclick is now directly in HTML
+    function setupLogoutButton() {
+      // No longer needed - logout is handled inline
+      console.log('✓ Logout button ready');
     }
 
     async function initUiControls() {
@@ -3037,14 +3104,27 @@
         event.stopPropagation();
       });
 
-      document.getElementById('notification-trigger').addEventListener('click', () => toggleNotificationPanel());
-      document.getElementById('mark-notifications-read').addEventListener('click', markNotificationsRead);
-      document.getElementById('profile-trigger').addEventListener('click', () => toggleProfileMenu());
-      document.getElementById('open-profile-settings').addEventListener('click', openSettings);
-      document.getElementById('logout-btn').addEventListener('click', logoutUser);
-      document.getElementById('close-settings').addEventListener('click', closeSettings);
-      document.getElementById('save-settings').addEventListener('click', saveProfileSettings);
-      document.getElementById('reset-settings').addEventListener('click', resetProfileSettings);
+      const notifTrigger = document.getElementById('notification-trigger');
+      if (notifTrigger) notifTrigger.addEventListener('click', () => toggleNotificationPanel());
+      const markRead = document.getElementById('mark-notifications-read');
+      if (markRead) markRead.addEventListener('click', markNotificationsRead);
+      
+      const profileTrigger = document.getElementById('profile-trigger');
+      if (profileTrigger) {
+        profileTrigger.addEventListener('click', () => {
+          console.log('Profile trigger clicked');
+          toggleProfileMenu();
+        });
+      }
+      
+      const openSettingsBtn = document.getElementById('open-profile-settings');
+      if (openSettingsBtn) openSettingsBtn.addEventListener('click', openSettings);
+      const closeSettingsBtn = document.getElementById('close-settings');
+      if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
+      const saveSettingsBtn = document.getElementById('save-settings');
+      if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveProfileSettings);
+      const resetSettingsBtn = document.getElementById('reset-settings');
+      if (resetSettingsBtn) resetSettingsBtn.addEventListener('click', resetProfileSettings);
 
       // Global click handler for closing menus
       document.addEventListener('click', (event) => {
@@ -3073,101 +3153,130 @@
         }
       });
 
-      document.getElementById('settings-overlay').addEventListener('click', (event) => {
+      document.getElementById('settings-overlay')?.addEventListener('click', (event) => {
         if (event.target.id === 'settings-overlay') closeSettings();
       });
 
-      document.getElementById('search-input').addEventListener('input', (event) => {
-        filters.query = event.target.value.trim().toLowerCase();
-        renderFilteredFeed();
-      });
-
-      document.getElementById('alerts-toggle').addEventListener('click', () => {
-        filters.alertsOnly = !filters.alertsOnly;
-        document.getElementById('alerts-toggle').classList.toggle('primary', filters.alertsOnly);
-        renderFilteredFeed();
-      });
-
-      document.getElementById('category-filter').addEventListener('change', (event) => {
-        filters.category = event.target.value;
-        renderFilteredFeed();
-      });
-
-      document.getElementById('channel-filter').addEventListener('change', (event) => {
-        filters.channel = event.target.value;
-        renderFilteredFeed();
-      });
-
-      document.getElementById('clear-filters').addEventListener('click', () => {
-        filters.alertsOnly = false;
-        filters.category = 'all';
-        filters.channel = 'all';
-        filters.query = '';
-        document.getElementById('search-input').value = '';
-        document.getElementById('category-filter').value = 'all';
-        document.getElementById('channel-filter').value = 'all';
-        document.getElementById('alerts-toggle').classList.remove('primary');
-        renderFilteredFeed();
-      });
-
-      document.getElementById('nav-alerts').addEventListener('click', (event) => {
-        event.preventDefault();
-        filters.alertsOnly = true;
-        document.getElementById('alerts-toggle').classList.add('primary');
-        renderFilteredFeed();
-        const target = document.getElementById('feed-panel');
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showToast('Showing urgent alerts');
-        }
-      });
-
-      document.getElementById('nav-categories').addEventListener('click', (event) => {
-        event.preventDefault();
-        const target = document.getElementById('category-panel');
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showToast('Focusing on categories');
-        }
-      });
-
-      document.getElementById('nav-channels').addEventListener('click', (event) => {
-        event.preventDefault();
-        const target = document.getElementById('source-panel');
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showToast('Focusing on channels');
-        }
-      });
-
-      document.getElementById('nav-operations').addEventListener('click', (event) => {
-        event.preventDefault();
-        const target = document.getElementById('operations-panel');
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (typeof loadQueue === 'function') loadQueue();
-            showToast('Operations board loaded');
-        }
-      });
-
-      document.getElementById('nav-social').addEventListener('click', (event) => {
-        event.preventDefault();
-        const target = document.getElementById('social-panel');
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (typeof loadSocialPosts === 'function') loadSocialPosts();
-            showToast('Monitoring feed loaded');
-        }
-      });
-
-      const dashboardBtn = document.querySelector('a[href="/portal/dashboard"]');
-      if (dashboardBtn) {
-        dashboardBtn.addEventListener('click', (event) => {
-          event.preventDefault();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          showToast('Returning to dashboard');
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) {
+        searchInput.addEventListener('input', (event) => {
+          filters.query = event.target.value.trim().toLowerCase();
+          renderFilteredFeed();
         });
       }
+
+      const alertsToggle = document.getElementById('alerts-toggle');
+      if (alertsToggle) {
+        alertsToggle.addEventListener('click', () => {
+          filters.alertsOnly = !filters.alertsOnly;
+          document.getElementById('alerts-toggle').classList.toggle('primary', filters.alertsOnly);
+          renderFilteredFeed();
+        });
+      }
+
+      const categoryFilter = document.getElementById('category-filter');
+      if (categoryFilter) {
+        categoryFilter.addEventListener('change', (event) => {
+          filters.category = event.target.value;
+          renderFilteredFeed();
+        });
+      }
+
+      const channelFilter = document.getElementById('channel-filter');
+      if (channelFilter) {
+        channelFilter.addEventListener('change', (event) => {
+          filters.channel = event.target.value;
+          renderFilteredFeed();
+        });
+      }
+
+      const clearFiltersBtn = document.getElementById('clear-filters');
+      if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', () => {
+          filters.alertsOnly = false;
+          filters.category = 'all';
+          filters.channel = 'all';
+          filters.query = '';
+          const searchInput = document.getElementById('search-input');
+          if (searchInput) searchInput.value = '';
+          const catFilter = document.getElementById('category-filter');
+          if (catFilter) catFilter.value = 'all';
+          const chanFilter = document.getElementById('channel-filter');
+          if (chanFilter) chanFilter.value = 'all';
+          const alertToggle = document.getElementById('alerts-toggle');
+          if (alertToggle) alertToggle.classList.remove('primary');
+          renderFilteredFeed();
+        });
+      }
+
+      const navAlerts = document.getElementById('nav-alerts');
+      if (navAlerts) {
+        navAlerts.addEventListener('click', (event) => {
+          event.preventDefault();
+          filters.alertsOnly = true;
+          const alertToggle = document.getElementById('alerts-toggle');
+          if (alertToggle) alertToggle.classList.add('primary');
+          renderFilteredFeed();
+          const target = document.getElementById('feed-panel');
+          if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              showToast('Showing urgent alerts');
+          }
+        });
+      }
+
+      const navCategories = document.getElementById('nav-categories');
+      if (navCategories) {
+        navCategories.addEventListener('click', (event) => {
+          event.preventDefault();
+          const target = document.getElementById('category-panel');
+          if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              showToast('Focusing on categories');
+          }
+        });
+      }
+
+      const navChannels = document.getElementById('nav-channels');
+      if (navChannels) {
+        navChannels.addEventListener('click', (event) => {
+          event.preventDefault();
+          const target = document.getElementById('source-panel');
+          if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              showToast('Focusing on channels');
+          }
+        });
+      }
+
+      const navOperations = document.getElementById('nav-operations');
+      if (navOperations) {
+        navOperations.addEventListener('click', (event) => {
+          event.preventDefault();
+          const target = document.getElementById('operations-panel');
+          if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              if (typeof loadQueue === 'function') loadQueue();
+              showToast('Operations board loaded');
+          }
+        });
+      }
+
+      const navSocial = document.getElementById('nav-social');
+      if (navSocial) {
+        navSocial.addEventListener('click', (event) => {
+          event.preventDefault();
+          const target = document.getElementById('social-panel');
+          if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              if (typeof loadSocialPosts === 'function') loadSocialPosts();
+              showToast('Monitoring feed loaded');
+          }
+        });
+      }
+
+      // Dashboard navigation now handled with inline onclick in HTML
+      // const dashboardBtn = document.querySelector('a[href="/portal/dashboard"]');  // REMOVED - using inline onclick instead
 
       const adminBtn = document.getElementById('nav-admin-monitoring');
       if (adminBtn) {
@@ -3178,12 +3287,20 @@
         });
       }
 
-      document.getElementById('queue-department-filter').addEventListener('change', loadQueue);
-      document.getElementById('queue-status-filter').addEventListener('change', loadQueue);
-      document.getElementById('refresh-queue').addEventListener('click', loadQueue);
+      const queueDeptFilter = document.getElementById('queue-department-filter');
+      if (queueDeptFilter) queueDeptFilter.addEventListener('change', loadQueue);
+      
+      const queueStatusFilter = document.getElementById('queue-status-filter');
+      if (queueStatusFilter) queueStatusFilter.addEventListener('change', loadQueue);
+      
+      const refreshQueue = document.getElementById('refresh-queue');
+      if (refreshQueue) refreshQueue.addEventListener('click', loadQueue);
 
-      document.getElementById('social-source-filter').addEventListener('change', loadSocialPosts);
-      document.getElementById('refresh-social').addEventListener('click', loadSocialPosts);
+      const socialSourceFilter = document.getElementById('social-source-filter');
+      if (socialSourceFilter) socialSourceFilter.addEventListener('change', loadSocialPosts);
+      
+      const refreshSocial = document.getElementById('refresh-social');
+      if (refreshSocial) refreshSocial.addEventListener('click', loadSocialPosts);
     }
 
     function baseLegend() {
@@ -3519,6 +3636,7 @@
 
       try {
         const posts = await apiJson(`${API}/feed?${params.toString()}`, { headers: getAuthHeaders() });
+        latestFeed = posts || [];
         updateSocialPosts(posts);
       } catch (err) {
         console.error('Load social posts error:', err);
@@ -3528,8 +3646,137 @@
           { id: 2, text: 'Having issues with login', source: 'Facebook', sentiment: 'Negative', created_at: new Date().toISOString() },
           { id: 3, text: 'Great customer service', source: 'Instagram', sentiment: 'Positive', created_at: new Date().toISOString() }
         ];
+        latestFeed = mockPosts;
         updateSocialPosts(mockPosts);
       }
+    }
+
+    function getSocialMediaIcon(source) {
+      const source_lower = (source || '').toLowerCase();
+      const iconMap = {
+        'twitter': 'fa-brands fa-twitter',
+        'facebook': 'fa-brands fa-facebook',
+        'instagram': 'fa-brands fa-instagram',
+        'linkedin': 'fa-brands fa-linkedin',
+        'reddit': 'fa-brands fa-reddit',
+        'tiktok': 'fa-brands fa-tiktok',
+        'youtube': 'fa-brands fa-youtube',
+        'email': 'fa-solid fa-envelope',
+        'call center': 'fa-solid fa-phone',
+        'survey': 'fa-solid fa-clipboard-list',
+        'social media': 'fa-solid fa-share-nodes'
+      };
+      return iconMap[source_lower] || 'fa-solid fa-share-nodes';
+    }
+
+    function escapeHtml(text) {
+      return String(text || '').replace(/[&<>"'`]/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+        '`': '&#96;'
+      })[char]);
+    }
+
+    function getEngagementStats(post) {
+      const source = (post?.source || '').toLowerCase();
+      const base = Number(post?.id || 0) || 0;
+      const likes = post?.likes ?? (source === 'facebook' ? 24 + (base % 17) : source === 'instagram' ? 14 + (base % 11) : 8 + (base % 9));
+      const comments = post?.comments ?? (source === 'facebook' ? 6 + (base % 7) : source === 'instagram' ? 4 + (base % 5) : 2 + (base % 4));
+      const shares = post?.shares ?? (source === 'facebook' ? 3 + (base % 5) : source === 'twitter' ? 5 + (base % 6) : 1 + (base % 3));
+      return { likes, comments, shares };
+    }
+
+    function getSourceLabel(source) {
+      const value = (source || '').toLowerCase();
+      if (value === 'facebook') return 'Facebook Post';
+      if (value === 'twitter') return 'X / Twitter Post';
+      if (value === 'instagram') return 'Instagram Post';
+      if (value === 'linkedin') return 'LinkedIn Post';
+      if (value === 'reddit') return 'Reddit Post';
+      return 'Social Post';
+    }
+
+    function getSourceTheme(source) {
+      const value = (source || '').toLowerCase();
+      if (value === 'facebook') return {
+        ring: 'border-blue-500/40 shadow-[0_0_0_1px_rgba(59,130,246,0.20)]',
+        badge: 'color:#d6e7ff;border-color:rgba(59,130,246,0.35);background:rgba(59,130,246,0.12);'
+      };
+      if (value === 'twitter') return {
+        ring: 'border-sky-400/40 shadow-[0_0_0_1px_rgba(56,189,248,0.20)]',
+        badge: 'color:#d8f3ff;border-color:rgba(56,189,248,0.35);background:rgba(56,189,248,0.12);'
+      };
+      if (value === 'instagram') return {
+        ring: 'border-pink-500/40 shadow-[0_0_0_1px_rgba(236,72,153,0.20)]',
+        badge: 'color:#ffe1f1;border-color:rgba(236,72,153,0.35);background:rgba(236,72,153,0.12);'
+      };
+      return {
+        ring: '',
+        badge: 'color:#c6d3ff;border-color:rgba(124,142,214,0.35);background:rgba(84,167,255,0.1);'
+      };
+    }
+
+    function getSourceCommentThread(post) {
+      const source = (post?.source || '').toLowerCase();
+      const baseName = source === 'facebook' ? 'Facebook user' : source === 'twitter' ? 'X user' : source === 'instagram' ? 'Instagram user' : 'Community member';
+      const commentLead = post?.sentiment === 'Negative' ? 'needs support on this' : 'thanks for sharing';
+      return [
+        {
+          author: baseName,
+          text: `I ${commentLead}. Can someone follow up on this?`,
+          time: 'Just now'
+        },
+        {
+          author: 'SFAO Team',
+          text: post?.urgency === 'High' ? 'We are escalating this issue now.' : 'We are monitoring and will respond shortly.',
+          time: '1 min ago'
+        }
+      ];
+    }
+
+    function getSourceModalMeta(source) {
+      const value = (source || '').toLowerCase();
+      if (value === 'facebook') {
+        return {
+          label: 'Facebook Post',
+          icon: 'fa-brands fa-facebook',
+          shell: 'border-blue-500/40 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]',
+          header: 'bg-gradient-to-r from-blue-600 to-blue-500',
+          accent: 'from-blue-500/20 to-blue-400/10',
+          actionLabel: 'View on Facebook'
+        };
+      }
+      if (value === 'twitter') {
+        return {
+          label: 'X / Twitter Post',
+          icon: 'fa-brands fa-twitter',
+          shell: 'border-sky-400/40 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]',
+          header: 'bg-gradient-to-r from-sky-500 to-cyan-500',
+          accent: 'from-sky-500/20 to-cyan-400/10',
+          actionLabel: 'Open on X'
+        };
+      }
+      if (value === 'instagram') {
+        return {
+          label: 'Instagram Post',
+          icon: 'fa-brands fa-instagram',
+          shell: 'border-pink-500/40 shadow-[0_0_0_1px_rgba(236,72,153,0.2)]',
+          header: 'bg-gradient-to-r from-pink-500 via-fuchsia-500 to-orange-500',
+          accent: 'from-pink-500/20 to-fuchsia-400/10',
+          actionLabel: 'Open on Instagram'
+        };
+      }
+      return {
+        label: 'Social Post',
+        icon: getSocialMediaIcon(source),
+        shell: '',
+        header: 'bg-gradient-to-r from-slate-700 to-slate-600',
+        accent: 'from-slate-600/20 to-slate-500/10',
+        actionLabel: 'Open source'
+      };
     }
 
     function updateSocialPosts(posts) {
@@ -3540,49 +3787,138 @@
         return;
       }
 
-      container.innerHTML = posts.map((post) => `
+      container.innerHTML = posts.map((post) => {
+        const icon = getSocialMediaIcon(post.source);
+        const stats = getEngagementStats(post);
+        return `
         <div class="bg-gray-800 rounded-xl p-4 hover:bg-gray-700 transition cursor-pointer" onclick="showPostDetails(${post.id})">
           <div class="flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-circle text-xs" style="color:#54a7ff;"></i>
             <span class="${sentimentClass(post.sentiment)}">${post.sentiment}</span>
-            <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1);">${post.source}</span>
-            <span class="badge ${urgencyClass(post.urgency)}">${post.urgency}</span>
+            <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1);"><i class="${icon}" style="margin-right:4px;"></i>${post.source}</span>
+            <span class="badge ${urgencyClass(post.urgency)}">${post.urgency || 'Low'}</span>
           </div>
           <p class="text-sm leading-6 mb-2" style="color:var(--text);">${post.text || ''}</p>
           <div class="flex items-center justify-between text-xs text-gray-400">
             <span>${post.category || 'General'}</span>
             <span>${new Date(post.created_at || Date.now()).toLocaleString()}</span>
           </div>
+          <div class="flex items-center gap-2 mt-3 text-xs text-gray-300">
+            <span class="badge" style="color:#ffd7e3; border-color:rgba(255,107,138,0.34); background:rgba(255,107,138,0.1);"><i class="fa-regular fa-heart" style="margin-right:4px;"></i>${stats.likes} likes</span>
+            <span class="badge" style="color:#d6f5ff; border-color:rgba(84,167,255,0.34); background:rgba(84,167,255,0.1);"><i class="fa-regular fa-comment" style="margin-right:4px;"></i>${stats.comments} comments</span>
+            <span class="badge" style="color:#e8ffd9; border-color:rgba(68,215,182,0.34); background:rgba(68,215,182,0.1);"><i class="fa-solid fa-share-nodes" style="margin-right:4px;"></i>${stats.shares} shares</span>
+          </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function showPostDetails(postId) {
       // Find the post from latestFeed or fetch individually
-      const post = latestFeed.find(p => p.id === postId);
+      const post = (latestFeed || []).find(p => String(p.id) === String(postId));
       if (!post) return;
+      const stats = getEngagementStats(post);
+      const meta = getSourceModalMeta(post.source);
+      const sourceLabel = getSourceLabel(post.source);
+      const icon = meta.icon;
+      const sourceTheme = getSourceTheme(post.source);
+      const commentThread = getSourceCommentThread(post);
+      const isFacebook = String(post.source || '').toLowerCase() === 'facebook';
+      const isTwitter = String(post.source || '').toLowerCase() === 'twitter';
+      const isInstagram = String(post.source || '').toLowerCase() === 'instagram';
+      const engagementBar = isFacebook
+        ? `<div class="flex flex-wrap gap-2 pt-2"><span class="badge" style="color:#ffd7e3;border-color:rgba(255,107,138,0.34);background:rgba(255,107,138,0.1);"><i class="fa-regular fa-thumbs-up" style="margin-right:4px;"></i>Like</span><span class="badge" style="color:#d6f5ff;border-color:rgba(84,167,255,0.34);background:rgba(84,167,255,0.1);"><i class="fa-regular fa-comment" style="margin-right:4px;"></i>Comment</span><span class="badge" style="color:#e8ffd9;border-color:rgba(68,215,182,0.34);background:rgba(68,215,182,0.1);"><i class="fa-solid fa-share-nodes" style="margin-right:4px;"></i>Share</span></div>`
+        : isTwitter
+          ? `<div class="flex flex-wrap gap-2 pt-2"><span class="badge" style="color:#d6f5ff;border-color:rgba(84,167,255,0.34);background:rgba(84,167,255,0.1);"><i class="fa-solid fa-retweet" style="margin-right:4px;"></i>Repost</span><span class="badge" style="color:#ffd7e3;border-color:rgba(255,107,138,0.34);background:rgba(255,107,138,0.1);"><i class="fa-regular fa-heart" style="margin-right:4px;"></i>Like</span><span class="badge" style="color:#e8ffd9;border-color:rgba(68,215,182,0.34);background:rgba(68,215,182,0.1);"><i class="fa-regular fa-comment" style="margin-right:4px;"></i>Reply</span></div>`
+          : isInstagram
+            ? `<div class="flex flex-wrap gap-2 pt-2"><span class="badge" style="color:#ffd7e3;border-color:rgba(255,107,138,0.34);background:rgba(255,107,138,0.1);"><i class="fa-regular fa-heart" style="margin-right:4px;"></i>Like</span><span class="badge" style="color:#d6f5ff;border-color:rgba(84,167,255,0.34);background:rgba(84,167,255,0.1);"><i class="fa-regular fa-comment" style="margin-right:4px;"></i>Comment</span><span class="badge" style="color:#e8ffd9;border-color:rgba(68,215,182,0.34);background:rgba(68,215,182,0.1);"><i class="fa-solid fa-paper-plane" style="margin-right:4px;"></i>Send</span></div>`
+            : '';
 
       // Create a modal or popup
       const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center';
+      modal.style.zIndex = '99999';
+      modal.style.position = 'fixed';
+      modal.style.top = '0';
+      modal.style.left = '0';
+      modal.style.right = '0';
+      modal.style.bottom = '0';
+      modal.style.display = 'flex';
+      modal.style.alignItems = 'center';
+      modal.style.justifyContent = 'center';
       modal.innerHTML = `
-        <div class="bg-gray-800 rounded-xl p-6 max-w-lg w-full mx-4">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold">Post Details</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <div class="bg-gray-800 rounded-xl max-w-lg w-full mx-4 ${sourceTheme.ring} overflow-hidden" style="max-height:85vh; overflow:auto;">
+          <div class="${meta.header} px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-white">
+              <i class="${icon}"></i>
+              <div>
+                <div class="font-bold leading-5">${meta.label}</div>
+                <div class="text-xs opacity-90">${sourceLabel}</div>
+              </div>
+            </div>
+            <button onclick="closeSocialModal(this)" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
           </div>
-          <div class="space-y-3">
-            <div><strong>Source:</strong> ${post.source}</div>
-            <div><strong>Sentiment:</strong> <span class="${sentimentClass(post.sentiment)}">${post.sentiment}</span></div>
-            <div><strong>Urgency:</strong> <span class="${urgencyClass(post.urgency)}">${post.urgency}</span></div>
-            <div><strong>Category:</strong> ${post.category || 'General'}</div>
-            <div><strong>Status:</strong> ${post.status || 'New'}</div>
-            <div><strong>Department:</strong> ${post.department_tag || 'Unassigned'}</div>
-            <div><strong>Text:</strong> <p class="mt-1">${post.text || ''}</p></div>
-            <div><strong>Suggested Action:</strong> ${post.urgency === 'High' ? 'Escalate immediately' : 'Monitor and respond'}</div>
+          <div class="p-5 bg-gradient-to-b ${meta.accent}">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,0.08);">
+                <i class="${icon} text-white"></i>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center justify-between gap-3 mb-2">
+                  <div>
+                    <div class="font-semibold">${escapeHtml(post.source || 'Unknown source')}</div>
+                    <div class="text-xs text-gray-300">${new Date(post.created_at || Date.now()).toLocaleString()}</div>
+                  </div>
+                  <span class="badge" style="${sourceTheme.badge}">${escapeHtml(post.category || 'General')}</span>
+                </div>
+                <p class="text-sm leading-6 mb-3" style="color:var(--text);">${escapeHtml(post.text || '')}</p>
+
+                <div class="flex items-center gap-2 text-xs text-gray-300 mb-3">
+                  <span class="badge" style="color:#ffd7e3;border-color:rgba(255,107,138,0.34);background:rgba(255,107,138,0.1);"><i class="fa-regular fa-heart" style="margin-right:4px;"></i>${stats.likes} likes</span>
+                  <span class="badge" style="color:#d6f5ff;border-color:rgba(84,167,255,0.34);background:rgba(84,167,255,0.1);"><i class="fa-regular fa-comment" style="margin-right:4px;"></i>${stats.comments} comments</span>
+                  <span class="badge" style="color:#e8ffd9;border-color:rgba(68,215,182,0.34);background:rgba(68,215,182,0.1);"><i class="fa-solid fa-share-nodes" style="margin-right:4px;"></i>${stats.shares} shares</span>
+                </div>
+
+                ${engagementBar}
+
+                <div class="mt-4 rounded-xl p-4" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);">
+                  <div class="font-semibold mb-3">Comments</div>
+                  <div class="space-y-3">
+                    ${commentThread.map((comment) => `
+                      <div class="flex gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:rgba(255,255,255,0.08);">${escapeHtml(comment.author.slice(0,1))}</div>
+                        <div class="flex-1">
+                          <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+                            <span class="font-semibold text-gray-200">${escapeHtml(comment.author)}</span>
+                            <span>${escapeHtml(comment.time)}</span>
+                          </div>
+                          <div class="text-sm leading-6" style="color:var(--text);">${escapeHtml(comment.text)}</div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <div class="mt-4 text-sm text-gray-300"><strong>Suggested Action:</strong> ${post.urgency === 'High' ? 'Escalate immediately' : 'Monitor and respond'}</div>
+                <div class="mt-4 flex items-center gap-2 text-xs text-gray-200">
+                  <span class="badge" style="color:#c6d3ff;border-color:rgba(124,142,214,0.35);background:rgba(84,167,255,0.1);"><i class="${icon}" style="margin-right:4px;"></i>${meta.actionLabel}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       `;
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeSocialModal(modal);
+      });
       document.body.appendChild(modal);
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSocialModal(node) {
+      const modal = node?.closest ? node.closest('div[style*="z-index: 99999"]') : document.querySelector('div[style*="z-index: 99999"]');
+      if (modal) modal.remove();
+      document.body.style.overflow = '';
     }
 
     async function refresh() {
@@ -3636,13 +3972,14 @@
 
     const savedUser = getSessionUser();
     primeDashboardShell();
+    setupLogoutButton();
     if (savedUser) {
       currentUser = savedUser;
       if (document.getElementById('auth-screen')) document.getElementById('auth-screen').classList.add('hidden');
       if (document.getElementById('app-frame')) document.getElementById('app-frame').classList.add('visible');
       initUiControls().then(() => {
         refresh();
-        
+
         // Handle export redirect from other pages
         const params = new URLSearchParams(window.location.search);
         const exportType = params.get('export');

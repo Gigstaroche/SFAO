@@ -37,6 +37,16 @@ class UserLogin(BaseModel):
 class EmailCodeRequest(BaseModel):
     email: str = Field(..., description="Organization email used for verification")
 
+
+class PasswordResetRequest(BaseModel):
+    email: str = Field(..., description="Email to send password reset code to")
+
+
+class PasswordResetConfirm(BaseModel):
+    email: str = Field(..., description="Email address for the account")
+    code: str = Field(..., description="Verification code sent to email")
+    new_password: str = Field(..., min_length=6, description="New password to set for the account")
+
 class UserSettingsUpdate(BaseModel):
     name: Optional[str] = Field(None, description="Display name")
     timezone: Optional[str] = Field(None, description="Preferred timezone")

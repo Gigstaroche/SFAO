@@ -35,6 +35,7 @@ from models import (
 )
 from schemas import (
     FeedbackCreate, SurveyCreate, StatusUpdate, UserCreate, UserLogin, EmailCodeRequest,
+    PasswordResetRequest, PasswordResetConfirm,
     UserSettingsUpdate, UserSettingsResponse, UserRoleUpdate,
     OrganizationCreate, DepartmentCreate, BuyerCreate, BuyerDepartmentCreate, RolePermissionsUpdate, FeedbackRouteUpdate,
     FeedbackResponse, UserResponse, BuyerResponse, BuyerDepartmentResponse, SummaryResponse, APIResponse,
@@ -42,7 +43,9 @@ from schemas import (
 )
 
 VALID_ROLES = {
+    "dev_admin",
     "super_admin",
+    "admin",
     "survey_admin",
     "survey_manager",
     "analyst",
@@ -50,6 +53,15 @@ VALID_ROLES = {
 }
 
 ROLE_PERMISSIONS = {
+    "dev_admin": {
+        "feedback:view",
+        "feedback:ingest",
+        "feedback:update_status",
+        "users:view",
+        "users:update_role",
+        "users:manage_settings_any",
+        "monitoring:view",
+    },
     "super_admin": {
         "feedback:view",
         "feedback:ingest",
@@ -57,14 +69,23 @@ ROLE_PERMISSIONS = {
         "users:view",
         "users:update_role",
         "users:manage_settings_any",
+        "monitoring:view",
+        "monitoring:ingest",
     },
-    "survey_admin": {
+    "admin": {
         "feedback:view",
         "feedback:ingest",
         "feedback:update_status",
         "users:view",
         "users:update_role",
         "users:manage_settings_any",
+        "monitoring:view",
+        "monitoring:ingest",
+    },
+    "survey_admin": {
+        "feedback:view",
+        "feedback:ingest",
+        "feedback:update_status",
     },
     "survey_manager": {
         "feedback:view",
@@ -313,7 +334,6 @@ def normalize_role(role: Optional[str]) -> str:
     """Normalize role naming to stable RBAC identifiers."""
     raw = (role or "employee").strip().lower().replace("-", "_").replace(" ", "_")
     aliases = {
-        "admin": "survey_admin",
         "manager": "survey_manager",
         "user": "employee",
     }
@@ -580,6 +600,22 @@ def record_audit_event(
     db.add(event)
     db.commit()
 
+
+def record_monitoring_event(
+    db: Session,
+    actor: Optional[User],
+    event_type: str,
+    details: Optional[dict] = None,
+) -> None:
+    record_audit_event(
+        db,
+        actor,
+        f"monitoring:{event_type}",
+        "monitoring",
+        event_type,
+        details or {},
+    )
+
 def ensure_super_admin_exists() -> None:
     """Promote earliest user to super_admin if none exists."""
     db = SessionLocal()
@@ -810,6 +846,52 @@ def send_signup_email_code(payload: EmailCodeRequest, db: Session = Depends(get_
     store_email_verification_code(normalized_email, code)
 
     return APIResponse(success=True, message="Verification code sent", data={"email": normalized_email})
+
+
+@app.post("/auth/request-reset", response_model=APIResponse)
+def request_password_reset(payload: PasswordResetRequest, db: Session = Depends(get_db)):
+    """Request a password reset code to be sent to the user's email.
+
+    For privacy, the endpoint returns success regardless of whether the account exists.
+    """
+    normalized_email = normalize_email(payload.email)
+    code = f"{random.randint(0, 999999):06d}"
+    # Store the code regardless so non-SMTP dev flows can use it.
+    store_email_verification_code(normalized_email, code)
+
+    # Attempt to send email but do not fail the request if SMTP isn't configured.
+    try:
+        send_org_email_code(normalized_email, code)
+    except Exception:
+        # swallow send errors for usability in local dev
+        pass
+
+    # In development/non-production environments, return the code to simplify testing.
+    if not is_production_env():
+        return APIResponse(success=True, message="Reset code sent (development mode)", data={"email": normalized_email, "code": code})
+
+    return APIResponse(success=True, message="If the email exists, a reset code has been sent.", data={"email": normalized_email})
+
+
+@app.post("/auth/confirm-reset", response_model=APIResponse)
+def confirm_password_reset(payload: PasswordResetConfirm, db: Session = Depends(get_db)):
+    """Confirm a password reset with a code and set the new password."""
+    normalized_email = normalize_email(payload.email)
+    # Validate code (will raise HTTPException on invalid/expired)
+    if not consume_email_verification_code(normalized_email, payload.code):
+        raise HTTPException(status_code=403, detail="Invalid or expired reset code")
+
+    user = db.query(User).filter(User.email == normalized_email).first()
+    if not user:
+        # For safety, treat as success (no account to update)
+        return APIResponse(success=True, message="Password updated (if account exists).")
+
+    user.password = hashlib.sha256(payload.new_password.encode()).hexdigest()
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return APIResponse(success=True, message="Password updated successfully")
 
 
 @app.put("/feedback/{feedback_id}/status", response_model=APIResponse)
@@ -1566,7 +1648,7 @@ def create_buyer_department(
 def list_audit_logs(
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
-    _: User = Depends(require_permission("users:update_role")),
+    _: User = Depends(require_permission("monitoring:view")),
 ):
     rows = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).all()
     data = [
@@ -1582,6 +1664,99 @@ def list_audit_logs(
         for row in rows
     ]
     return APIResponse(success=True, message="Audit logs", data=data)
+
+
+@app.get("/admin/monitoring/overview", response_model=APIResponse)
+def monitoring_overview(
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("monitoring:view")),
+):
+    # Determine which events the user is allowed to see based on their role
+    rows = db.query(AuditLog).filter(AuditLog.action.like("monitoring:%")).order_by(AuditLog.created_at.desc()).limit(limit * 2).all()
+    
+    actor_role = normalize_role(actor.role)
+    filtered_rows = []
+
+    for row in rows:
+        details = json.loads(row.details) if row.details else {}
+        user_role = details.get("user_role", "employee")
+
+        # Role-based filtering:
+        # - dev_admin: sees everything
+        # - super_admin: sees only admin/super_admin actions
+        # - admin: sees only regular user actions
+        if actor_role == "dev_admin":
+            filtered_rows.append(row)
+        elif actor_role == "super_admin":
+            if user_role in {"admin", "super_admin"}:
+                filtered_rows.append(row)
+        elif actor_role == "admin":
+            if user_role not in {"admin", "super_admin"}:
+                filtered_rows.append(row)
+
+        if len(filtered_rows) >= limit:
+            break
+    
+    events = []
+    summary = {
+        "total_events": 0,
+        "frontend_errors": 0,
+        "frontend_warnings": 0,
+        "performance_samples": 0,
+        "synthetic_checks": 0,
+        "click_events": 0,
+        "last_event_at": None,
+    }
+
+    for row in filtered_rows:
+        details = json.loads(row.details) if row.details else {}
+        event_type = (row.action or "").split(":", 1)[-1]
+        summary["total_events"] += 1
+        summary["last_event_at"] = row.created_at.isoformat() if row.created_at else summary["last_event_at"]
+
+        if event_type in {"error", "unhandledrejection"}:
+            summary["frontend_errors"] += 1
+        elif event_type == "warning":
+            summary["frontend_warnings"] += 1
+        elif event_type == "performance":
+            summary["performance_samples"] += 1
+        elif event_type == "synthetic":
+            summary["synthetic_checks"] += 1
+        elif event_type == "click":
+            summary["click_events"] += 1
+
+        events.append(
+            {
+                "id": row.id,
+                "event_type": event_type,
+                "actor_user_id": row.actor_user_id,
+                "target_type": row.target_type,
+                "target_id": row.target_id,
+                "details": details,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            }
+        )
+
+    return APIResponse(success=True, message="Monitoring overview", data={"summary": summary, "events": events})
+
+
+@app.post("/admin/monitoring/events", response_model=APIResponse)
+def ingest_monitoring_event(
+    payload: Dict[str, object],
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("monitoring:ingest")),
+):
+    event_type = str(payload.get("event_type") or payload.get("type") or "event").strip().lower().replace(" ", "_")
+    if not event_type:
+        event_type = "event"
+
+    details = payload.get("details") if isinstance(payload.get("details"), dict) else {}
+    if not isinstance(details, dict):
+        details = {}
+
+    record_monitoring_event(db, actor, event_type, details)
+    return APIResponse(success=True, message="Monitoring event recorded", data={"event_type": event_type})
 
 # Health check endpoint
 @app.get("/health")

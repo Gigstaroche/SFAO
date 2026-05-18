@@ -871,15 +871,28 @@
       if (frame) frame.classList.add('visible');
     }
 
+    function normalizeRole(role) {
+      const raw = String(role || 'employee').toLowerCase().trim().replace(/[\s-]+/g, '_');
+      const aliases = {
+        superadmin: 'super_admin',
+        surveyadmin: 'survey_admin',
+        surveymanager: 'survey_manager',
+      };
+      return aliases[raw] || raw;
+    }
+
     function updateMenuVisibility(userRole) {
-      const role = (userRole || 'employee').toLowerCase().replace(/[\s-]+/g, '_');
+      const role = normalizeRole(userRole);
       const ROLE_MODULE_ACCESS = {
+        // dev_admin: ONLY system monitoring logs, nothing else
+        'dev_admin': ['admin_monitoring'],
         'super_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
+        'admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
         'survey_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
         'survey_manager': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
         'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
         'department_resolver': ['dashboard', 'alerts', 'operations', 'social'],
-        'executive_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
+        'executive_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
         'employee': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
         'user': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
       };

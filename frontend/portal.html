@@ -314,13 +314,21 @@
               <input id="login-email" type="email" required placeholder="you@company.com"
                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
             </div>
-            <div>
+            <div class="relative">
               <label class="text-xs text-slate-400 block mb-1.5">Password</label>
-              <input id="login-password" type="password" required placeholder="••••••••"
-                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+              <div class="relative">
+                <input id="login-password" type="password" required placeholder="••••••••"
+                  class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+                <button type="button" id="toggle-login-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
             </div>
             <button type="submit"
               class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 py-2.5 rounded-xl text-sm font-semibold transition">Sign In</button>
+            <div class="flex justify-between items-center mt-2">
+              <a href="#" id="forgot-password-link" class="text-xs text-slate-400">Forgot password?</a>
+            </div>
             <div id="login-error" class="hidden text-xs text-red-400 text-center"></div>
           </form>
         </div>
@@ -343,10 +351,15 @@
               <input id="reg-email" type="email" required placeholder="you@company.com"
                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
             </div>
-            <div>
+            <div class="relative">
               <label class="text-xs text-slate-400 block mb-1.5">Password</label>
-              <input id="reg-password" type="password" required placeholder="Min 6 characters"
-                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+              <div class="relative">
+                <input id="reg-password" type="password" required placeholder="Min 6 characters"
+                  class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+                <button type="button" id="toggle-reg-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
             </div>
             <button type="submit"
               class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 py-2.5 rounded-xl text-sm font-semibold transition">Create Account</button>
@@ -542,6 +555,45 @@
       document.getElementById('portal-screen').classList.add('hidden');
       document.getElementById('auth-screen').classList.remove('hidden');
     }
+
+    // Password toggle handlers
+    const tLogin = document.getElementById('toggle-login-password');
+    if (tLogin) tLogin.addEventListener('click', () => {
+      const inp = document.getElementById('login-password');
+      if (!inp) return;
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      tLogin.innerHTML = inp.type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
+    });
+
+    const tReg = document.getElementById('toggle-reg-password');
+    if (tReg) tReg.addEventListener('click', () => {
+      const inp = document.getElementById('reg-password');
+      if (!inp) return;
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      tReg.innerHTML = inp.type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
+    });
+
+    // Password reset modal (portal)
+    const portalForgot = document.getElementById('forgot-password-link');
+    if (portalForgot) portalForgot.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Create a simple prompt flow: request email then code+new password
+      const email = prompt('Enter your work email to receive a reset code');
+      if (!email) return;
+      fetch(`${API}/auth/request-reset`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) })
+        .then((r) => r.json())
+        .then(() => {
+          const code = prompt('Enter the 6-digit code you received via email');
+          if (!code) return alert('Reset cancelled');
+          const newPw = prompt('Enter your new password (min 6 chars)');
+          if (!newPw || newPw.length < 6) return alert('Password must be at least 6 characters');
+          fetch(`${API}/auth/confirm-reset`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, new_password: newPw }) })
+            .then((r) => r.json())
+            .then((data) => alert(data.message || 'Password updated'))
+            .catch(() => alert('Failed to update password'));
+        })
+        .catch(() => alert('Could not send reset code'));
+    });
 
     // Auto-login if session exists
     const saved = sessionStorage.getItem('sfao_user');

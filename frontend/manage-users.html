@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Users - SFAO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #151d3c;
+      --text: #f3f7ff;
+      --muted: #becaef;
+      --accent: #54a7ff;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .header { margin-bottom: 24px; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: bold; }
+    .header p { margin: 4px 0 0 0; color: var(--muted); }
+    .card { background: var(--panel); border-radius: 8px; padding: 16px; }
+    .user-row { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .user-row:last-child { border-bottom: none; }
+    .user-id { flex: 0 0 40px; color: var(--muted); font-size: 12px; }
+    .user-info { flex: 1; }
+    .user-name { font-weight: 600; }
+    .user-email { font-size: 12px; color: var(--muted); }
+    .user-role { flex: 0 0 150px; }
+    .user-role select { width: 100%; padding: 6px; border-radius: 4px; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: inherit; }
+    .user-actions { flex: 0 0 80px; }
+    .btn { padding: 6px 12px; border-radius: 4px; border: 0; background: var(--accent); color: white; cursor: pointer; font-size: 12px; }
+    .btn:hover { opacity: 0.8; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error { color: #ff6b8a; margin: 12px 0; }
+    .success { color: #44d7b6; margin: 12px 0; }
+    .loading { text-align: center; padding: 24px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><i class="fa-solid fa-users-gear"></i> Manage Users</h1>
+      <p>Update user roles (Admin only)</p>
+      <button onclick="window.history.back()" style="margin-top:8px; padding:8px 12px; background:transparent; border:1px solid var(--muted); color:var(--text); border-radius:4px; cursor:pointer;">← Back</button>
+    </div>
+    
+    <div id="error-msg" class="error" style="display:none;"></div>
+    <div id="success-msg" class="success" style="display:none;"></div>
+    
+    <div class="card">
+      <div id="users-container" class="loading">Loading users...</div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8000';
+    let currentUser = null;
+
+    function getSessionUser() {
+      try {
+        const raw = sessionStorage.getItem('sfao_user');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed?.data?.user || parsed?.data || parsed;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function getAuthHeaders(extra = {}) {
+      const headers = { ...extra };
+      const saved = sessionStorage.getItem('sfao_user');
+      if (saved) {
+        try {
+          const user = JSON.parse(saved);
+          if (user?.access_token) {
+            headers['Authorization'] = `Bearer ${user.access_token}`;
+          } else if (user?.data?.access_token) {
+            headers['Authorization'] = `Bearer ${user.data.access_token}`;
+          }
+        } catch (e) {}
+      }
+      return headers;
+    }
+
+    async function apiJson(url, options = {}) {
+      const response = await fetch(url, options);
+      if (response.status === 401) {
+        window.location.href = 'index.html';
+        throw new Error('Session expired');
+      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.detail || data?.message || `Request failed (${response.status})`);
+      return data;
+    }
+
+    function showMessage(type, text) {
+      const el = document.getElementById(type === 'error' ? 'error-msg' : 'success-msg');
+      if (el) {
+        el.textContent = text;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 3000);
+      }
+    }
+
+    function canAccessManageUsers(role) {
+      const raw = String(role || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+      const normalizedRole = raw === 'superadmin' ? 'super_admin' : raw;
+      return ['admin', 'super_admin', 'dev_admin'].includes(normalizedRole);
+    }
+
+    async function loadUsers() {
+      const container = document.getElementById('users-container');
+      try {
+        currentUser = getSessionUser();
+
+        if (!currentUser || !canAccessManageUsers(currentUser.role)) {
+          container.innerHTML = '<div style="color:#ff6b8a;">Access denied. Admin or Super Admin users only.</div>';
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1000);
+          return;
+        }
+
+        const response = await apiJson(`${API}/users`, { headers: getAuthHeaders() });
+        const users = response?.data || response || [];
+        
+        if (!Array.isArray(users) || users.length === 0) {
+          container.innerHTML = '<div>No users found.</div>';
+          return;
+        }
+
+        const roles = ['admin', 'survey_admin', 'survey_manager', 'analyst', 'employee', 'super_admin'];
+        const rows = users.map(u => `
+          <div class="user-row">
+            <div class="user-id">#${u.id}</div>
+            <div class="user-info">
+              <div class="user-name">${escapeHtml(u.name || '')}</div>
+              <div class="user-email">${escapeHtml(u.email || '')}</div>
+            </div>
+            <div class="user-role">
+              <select data-user-id="${u.id}" data-user-email="${escapeHtml(u.email || '')}">
+                ${roles.map(r => `<option value="${r}" ${(u.role || '').toLowerCase() === r.toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
+              </select>
+            </div>
+            <div class="user-actions">
+              <button class="btn save-btn" data-user-id="${u.id}">Save</button>
+            </div>
+          </div>
+        `).join('');
+        
+        container.innerHTML = rows;
+        
+        // Attach save handlers
+        Array.from(document.querySelectorAll('.save-btn')).forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const userId = btn.getAttribute('data-user-id');
+            const select = container.querySelector(`select[data-user-id="${userId}"]`);
+            if (!select) return;
+            
+            const newRole = select.value;
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+            
+            try {
+              await apiJson(`${API}/admin/users/${userId}/role`, {
+                method: 'PUT',
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ role: newRole })
+              });
+              showMessage('success', `Role updated for ${select.getAttribute('data-user-email')}`);
+              btn.textContent = 'Save';
+              btn.disabled = false;
+            } catch (err) {
+              showMessage('error', `Failed: ${err.message}`);
+              btn.textContent = 'Save';
+              btn.disabled = false;
+            }
+          });
+        });
+      } catch (err) {
+        container.innerHTML = `<div style="color:#ff6b8a;">Error: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"'`]/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;'
+      })[m]);
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

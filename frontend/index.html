@@ -1639,9 +1639,13 @@
           </div>
           <div class="auth-field">
             <label for="login-password">Password</label>
-            <input id="login-password" type="password" required placeholder="••••••••" />
+            <div style="position:relative">
+              <input id="login-password" type="password" required placeholder="••••••••" style="width:100%;" />
+              <button type="button" id="toggle-login-password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%);" aria-label="Toggle password visibility"><i class="fa-solid fa-eye"></i></button>
+            </div>
           </div>
           <button type="submit" class="auth-button">Sign in</button>
+          <div style="margin-top:8px; text-align:right"><a href="#" id="forgot-password-link" class="auth-forgot">Forgot password?</a></div>
           <div id="auth-message" class="auth-message"></div>
         </form>
 
@@ -1654,7 +1658,6 @@
             <label for="reg-email"><i class="fa-solid fa-building"></i>Work email</label>
             <div class="auth-inline">
               <div class="auth-input-icon">
-                <i class="fa-solid fa-envelope"></i>
                 <input id="reg-email" type="email" required placeholder="you@company.com" />
               </div>
               <button type="button" id="send-signup-code" class="auth-code-btn">Send code</button>
@@ -1666,7 +1669,10 @@
           </div>
           <div class="auth-field">
             <label for="reg-password">Password</label>
-            <input id="reg-password" type="password" required placeholder="Min 6 characters" />
+            <div style="position:relative">
+              <input id="reg-password" type="password" required placeholder="Min 6 characters" style="width:100%;" />
+              <button type="button" id="toggle-reg-password" style="position:absolute; right:8px; top:50%; transform:translateY(-50%);" aria-label="Toggle password visibility"><i class="fa-solid fa-eye"></i></button>
+            </div>
           </div>
           <button type="submit" class="auth-button">Create account</button>
           <div id="auth-message-register" class="auth-message"></div>
@@ -1925,16 +1931,24 @@
           <div class="flex items-center gap-2">
             <select id="social-source-filter" class="status-select">
               <option value="">All sources</option>
-              <option value="Twitter">Twitter</option>
+              <option value="Twitter">X (Twitter)</option>
               <option value="Facebook">Facebook</option>
               <option value="Instagram">Instagram</option>
-              <option value="LinkedIn">LinkedIn</option>
               <option value="Reddit">Reddit</option>
+              <option value="LinkedIn">LinkedIn</option>
             </select>
             <button id="refresh-social" class="btn" type="button"><i class="fa-solid fa-rotate-right"></i></button>
           </div>
         </header>
-        <div id="social-posts" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+        <!-- Platform Distribution -->
+        <div style="padding: 1rem 0; border-bottom: 1px solid var(--line); margin-bottom: 1.5rem;">
+          <p style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.75rem; font-weight: 600;">Platform Distribution</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;" id="platform-distribution"></div>
+        </div>
+
+        <!-- Posts Grid -->
+        <div id="social-posts" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; min-height: auto;"></div>
       </section>
 
 
@@ -2381,6 +2395,25 @@
       }
     }
 
+    // Password reset flow (request + confirm)
+    const forgotLink = document.getElementById('forgot-password-link');
+    if (forgotLink) forgotLink.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const email = prompt('Enter your work email to receive a reset code');
+      if (!email) return;
+      try {
+        await apiJson(`${API}/auth/request-reset`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+        const code = prompt('Enter the 6-digit code you received via email');
+        if (!code) return alert('Reset cancelled');
+        const newPw = prompt('Enter your new password (min 6 chars)');
+        if (!newPw || newPw.length < 6) return alert('Password must be at least 6 characters');
+        const res = await apiJson(`${API}/auth/confirm-reset`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, new_password: newPw }) });
+        alert(res.message || 'Password updated — please login');
+      } catch (err) {
+        alert(err.message || 'Password reset failed');
+      }
+    });
+
     async function doRegister(e) {
       e.preventDefault();
       const name = document.getElementById('reg-name').value;
@@ -2430,6 +2463,33 @@
         showAuthMessage('auth-message-register', err.message || 'Registration failed', 'error');
       }
     }
+
+    // Accessible show/hide password toggles for index auth UI
+    (function(){
+      const tLogin = document.getElementById('toggle-login-password');
+      if (tLogin) {
+        tLogin.setAttribute('aria-pressed', 'false');
+        tLogin.addEventListener('click', () => {
+          const inp = document.getElementById('login-password'); if (!inp) return;
+          const nowHidden = inp.type === 'password'; inp.type = nowHidden ? 'text' : 'password';
+          tLogin.innerHTML = nowHidden ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+          tLogin.setAttribute('aria-pressed', nowHidden ? 'true' : 'false');
+        });
+        const inp = document.getElementById('login-password'); if (inp) tLogin.innerHTML = inp.type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
+      }
+
+      const tReg = document.getElementById('toggle-reg-password');
+      if (tReg) {
+        tReg.setAttribute('aria-pressed', 'false');
+        tReg.addEventListener('click', () => {
+          const inp = document.getElementById('reg-password'); if (!inp) return;
+          const nowHidden = inp.type === 'password'; inp.type = nowHidden ? 'text' : 'password';
+          tReg.innerHTML = nowHidden ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+          tReg.setAttribute('aria-pressed', nowHidden ? 'true' : 'false');
+        });
+        const inp2 = document.getElementById('reg-password'); if (inp2) tReg.innerHTML = inp2.type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
+      }
+    })();
 
     function updateFilterSummary(total, visible) {
       const message = filters.alertsOnly
@@ -3640,11 +3700,15 @@
         updateSocialPosts(posts);
       } catch (err) {
         console.error('Load social posts error:', err);
-        // Load mock social posts for demo
+        // Load mock social posts for demo - with actual social media platforms
         const mockPosts = [
-          { id: 1, text: 'Loving the new features!', source: 'Twitter', sentiment: 'Positive', created_at: new Date().toISOString() },
-          { id: 2, text: 'Having issues with login', source: 'Facebook', sentiment: 'Negative', created_at: new Date().toISOString() },
-          { id: 3, text: 'Great customer service', source: 'Instagram', sentiment: 'Positive', created_at: new Date().toISOString() }
+          { id: 1, text: 'Loving the new features! This product is amazing.', source: 'Twitter', sentiment: 'Positive', urgency: 'Low', category: 'General', created_at: new Date().toISOString(), likes: 124, comments: 18, shares: 45 },
+          { id: 2, text: 'Having critical issues with app crashes on login', source: 'Facebook', sentiment: 'Negative', urgency: 'High', category: 'Technical', created_at: new Date().toISOString(), likes: 45, comments: 23, shares: 12 },
+          { id: 3, text: 'Great customer service experience today!', source: 'Instagram', sentiment: 'Positive', urgency: 'Low', category: 'Support', created_at: new Date().toISOString(), likes: 231, comments: 34, shares: 8 },
+          { id: 4, text: 'Billing issue still unresolved after 3 days', source: 'Reddit', sentiment: 'Negative', urgency: 'Medium', category: 'Technical', created_at: new Date().toISOString(), likes: 78, comments: 41, shares: 15 },
+          { id: 5, text: 'Satisfied with the overall service quality.', source: 'Twitter', sentiment: 'Positive', urgency: 'Low', category: 'Support', created_at: new Date().toISOString(), likes: 89, comments: 12, shares: 23 },
+          { id: 6, text: 'App keeps freezing during checkout', source: 'Facebook', sentiment: 'Negative', urgency: 'High', category: 'Technical', created_at: new Date().toISOString(), likes: 112, comments: 52, shares: 28 },
+          { id: 7, text: 'Best purchase decision ever made', source: 'Instagram', sentiment: 'Positive', urgency: 'Low', category: 'General', created_at: new Date().toISOString(), likes: 445, comments: 67, shares: 34 }
         ];
         latestFeed = mockPosts;
         updateSocialPosts(mockPosts);
@@ -3779,34 +3843,116 @@
       };
     }
 
+    function calculatePlatformDistribution(posts) {
+      const distribution = {};
+      const platformMap = {
+        'twitter': 'X (Twitter)',
+        'facebook': 'Facebook',
+        'instagram': 'Instagram',
+        'linkedin': 'LinkedIn',
+        'reddit': 'Reddit'
+      };
+      const sourceToValueMap = {
+        'X (Twitter)': 'Twitter',
+        'Facebook': 'Facebook',
+        'Instagram': 'Instagram',
+        'LinkedIn': 'LinkedIn',
+        'Reddit': 'Reddit'
+      };
+      
+      (posts || []).forEach(post => {
+        const source = (post.source || '').toLowerCase();
+        const label = platformMap[source] || post.source || 'Other';
+        distribution[label] = (distribution[label] || 0) + 1;
+      });
+      
+      return { distribution, sourceToValueMap };
+    }
+
+    function updatePlatformDistribution(posts) {
+      const container = document.getElementById('platform-distribution');
+      if (!container) return;
+      
+      const { distribution, sourceToValueMap } = calculatePlatformDistribution(posts);
+      const total = posts?.length || 0;
+      
+      if (total === 0) {
+        container.innerHTML = '<p class="muted" style="font-size: 0.75rem;">No posts available</p>';
+        return;
+      }
+      
+      container.innerHTML = Object.entries(distribution)
+        .sort((a, b) => b[1] - a[1])
+        .map(([platform, count]) => {
+          const percentage = Math.round((count / total) * 100);
+          const platformKey = platform.toLowerCase().replace(' (twitter)', '').replace(' ', '');
+          const filterValue = sourceToValueMap[platform] || platform;
+          let bgColor = 'rgba(84, 167, 255, 0.1)';
+          let textColor = '#54a7ff';
+          let borderColor = 'rgba(84, 167, 255, 0.35)';
+          
+          if (platformKey.includes('facebook')) {
+            bgColor = 'rgba(59, 130, 246, 0.12)';
+            textColor = '#3b82f6';
+            borderColor = 'rgba(59, 130, 246, 0.35)';
+          } else if (platformKey.includes('x') || platformKey.includes('twitter')) {
+            bgColor = 'rgba(56, 189, 248, 0.12)';
+            textColor = '#38bdf8';
+            borderColor = 'rgba(56, 189, 248, 0.35)';
+          } else if (platformKey.includes('instagram')) {
+            bgColor = 'rgba(236, 72, 153, 0.12)';
+            textColor = '#ec4899';
+            borderColor = 'rgba(236, 72, 153, 0.35)';
+          } else if (platformKey.includes('reddit')) {
+            bgColor = 'rgba(255, 107, 107, 0.12)';
+            textColor = '#ff6b6b';
+            borderColor = 'rgba(255, 107, 107, 0.35)';
+          }
+          
+          return `
+            <div style="border: 1px solid ${borderColor}; background: ${bgColor}; border-radius: 0.75rem; padding: 0.75rem; text-align: center; cursor: pointer;" 
+                 onclick="document.getElementById('social-source-filter').value='${filterValue}'; loadSocialPosts();"
+                 title="Click to filter by ${platform}">
+              <p style="margin: 0; font-size: 0.875rem; font-weight: 600; color: ${textColor};">${count}</p>
+              <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--muted);">${platform}</p>
+              <p style="margin: 0.25rem 0 0 0; font-size: 0.7rem; color: ${textColor}; opacity: 0.8;">${percentage}%</p>
+            </div>
+          `;
+        }).join('');
+    }
+
     function updateSocialPosts(posts) {
       const container = document.getElementById('social-posts');
 
       if (!posts || !posts.length) {
-        container.innerHTML = '<p class="muted" style="padding:0.8rem;">No social posts available.</p>';
+        container.innerHTML = '<p class="muted" style="padding:1.5rem; text-align: center; grid-column: 1 / -1;">No social posts available.</p>';
         return;
       }
+
+      // Update platform distribution
+      updatePlatformDistribution(posts);
 
       container.innerHTML = posts.map((post) => {
         const icon = getSocialMediaIcon(post.source);
         const stats = getEngagementStats(post);
         return `
-        <div class="bg-gray-800 rounded-xl p-4 hover:bg-gray-700 transition cursor-pointer" onclick="showPostDetails(${post.id})">
-          <div class="flex items-center gap-2 mb-2">
+        <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem; padding: 1rem; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; min-height: 240px;" 
+             class="hover:brightness-110" onclick="showPostDetails(${post.id})">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
             <i class="fa-solid fa-circle text-xs" style="color:#54a7ff;"></i>
             <span class="${sentimentClass(post.sentiment)}">${post.sentiment}</span>
-            <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1);"><i class="${icon}" style="margin-right:4px;"></i>${post.source}</span>
-            <span class="badge ${urgencyClass(post.urgency)}">${post.urgency || 'Low'}</span>
+            <span class="badge" style="color:#c6d3ff; border-color:rgba(124,142,214,0.35); background:rgba(84,167,255,0.1); font-size: 0.75rem;"><i class="${icon}" style="margin-right:4px;"></i>${post.source}</span>
+            <span class="badge ${urgencyClass(post.urgency)}" style="font-size: 0.75rem;">${post.urgency || 'Low'}</span>
           </div>
-          <p class="text-sm leading-6 mb-2" style="color:var(--text);">${post.text || ''}</p>
-          <div class="flex items-center justify-between text-xs text-gray-400">
+          <p style="font-size: 0.875rem; line-height: 1.5; margin-bottom: 0.75rem; color: var(--text); flex-grow: 1; word-wrap: break-word;">${post.text || ''}</p>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--line);">
             <span>${post.category || 'General'}</span>
             <span>${new Date(post.created_at || Date.now()).toLocaleString()}</span>
           </div>
-          <div class="flex items-center gap-2 mt-3 text-xs text-gray-300">
-            <span class="badge" style="color:#ffd7e3; border-color:rgba(255,107,138,0.34); background:rgba(255,107,138,0.1);"><i class="fa-regular fa-heart" style="margin-right:4px;"></i>${stats.likes} likes</span>
-            <span class="badge" style="color:#d6f5ff; border-color:rgba(84,167,255,0.34); background:rgba(84,167,255,0.1);"><i class="fa-regular fa-comment" style="margin-right:4px;"></i>${stats.comments} comments</span>
-            <span class="badge" style="color:#e8ffd9; border-color:rgba(68,215,182,0.34); background:rgba(68,215,182,0.1);"><i class="fa-solid fa-share-nodes" style="margin-right:4px;"></i>${stats.shares} shares</span>
+          <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--muted); flex-wrap: wrap;">
+            <span class="badge" style="color:#ffd7e3; border-color:rgba(255,107,138,0.34); background:rgba(255,107,138,0.1); font-size: 0.7rem;"><i class="fa-regular fa-heart" style="margin-right:4px;"></i>${stats.likes}</span>
+            <span class="badge" style="color:#d6f5ff; border-color:rgba(84,167,255,0.34); background:rgba(84,167,255,0.1); font-size: 0.7rem;"><i class="fa-regular fa-comment" style="margin-right:4px;"></i>${stats.comments}</span>
+            <span class="badge" style="color:#e8ffd9; border-color:rgba(68,215,182,0.34); background:rgba(68,215,182,0.1); font-size: 0.7rem;"><i class="fa-solid fa-share-nodes" style="margin-right:4px;"></i>${stats.shares}</span>
           </div>
         </div>
       `;

@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SFAO - Your Surveys</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+  <nav class="bg-gray-800 p-4">
+    <a href="/portal/dashboard" class="mr-4">Dashboard</a>
+    <a href="/portal/portal.html" class="mr-4">Portal</a>
+    <a href="/portal/survey-builder.html" class="mr-4">Survey Builder</a>
+  </nav>
+  <main class="p-6 max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">Assigned Surveys</h1>
+    <div id="assigned-list" class="space-y-4"></div>
+
+    <div id="respond-area" class="mt-6 bg-gray-800 p-4 rounded hidden">
+      <h2 id="respond-title" class="font-semibold mb-2"></h2>
+      <form id="respond-form" class="space-y-3">
+        <div id="questions-container"></div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 bg-blue-600 rounded" type="submit">Submit</button>
+          <button type="button" id="cancel-respond" class="px-4 py-2 bg-gray-600 rounded">Cancel</button>
+        </div>
+        <div id="respond-msg" class="text-sm mt-1"></div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const assignmentBySurvey = new Map();
+
+    function getAuthHeaders() {
+      const token = sessionStorage.getItem('auth_token') || '';
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    }
+
+    async function loadAssigned(){
+      const res = await fetch('/surveys/assigned', { headers: getAuthHeaders() });
+      const data = await res.json();
+      const list = document.getElementById('assigned-list');
+      if (!res.ok) { list.innerText = 'Could not load assignments'; return; }
+      if (!data.data || data.data.length===0) { list.innerHTML = '<p class="text-gray-400">No assigned surveys</p>'; return; }
+      assignmentBySurvey.clear();
+      data.data.forEach((a) => assignmentBySurvey.set(String(a.survey_id), a));
+      list.innerHTML = data.data.map(a => `\n        <div class="p-3 bg-gray-700 rounded">\n          <div class="flex justify-between">\n            <div>\n              <strong>${a.survey_name}</strong> <span class="text-xs text-gray-400">#${a.survey_id}</span><br/>\n              <span class="text-sm text-gray-300">Due: ${a.due_date||'—'}</span>\n            </div>\n            <div class="flex items-center gap-2">\n              <button data-id="${a.assignment_id}" data-survey="${a.survey_id}" class="respond-btn px-3 py-1 bg-blue-600 rounded text-sm">Respond</button>\n              <span class="text-xs text-gray-300">${a.already_responded? '✓ Responded':'New'}</span>\n            </div>\n          </div>\n        </div>`).join('\n');
+
+      document.querySelectorAll('.respond-btn').forEach(b => b.addEventListener('click', (e)=>{
+        const surveyId = parseInt(e.currentTarget.dataset.survey);
+        const assignmentId = parseInt(e.currentTarget.dataset.id);
+        openRespond(surveyId, assignmentId);
+      }));
+    }
+
+    async function openRespond(surveyId, assignmentId){
+      const assigned = assignmentBySurvey.get(String(surveyId));
+      if (!assigned) { alert('Could not load survey'); return; }
+
+      const questions = JSON.parse(assigned.questions || '[]');
+      document.getElementById('respond-title').innerText = assigned.survey_name;
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
+      questions.forEach(q => {
+        const id = q.id || Math.random().toString(36).slice(2,8);
+        const type = q.type || 'text';
+        let html = '';
+        if (type === 'rating'){
+          html = `<label class="block text-sm mb-1">${q.text}</label><div class="flex gap-2">` + [1,2,3,4,5].map(v=>`<label class="inline-flex items-center gap-2"><input name="q_${id}" type="radio" value="${v}"/> <span>${v}</span></label>`).join('') + `</div>`;
+        } else if (type === 'textarea'){
+          html = `<label class="block text-sm mb-1">${q.text}</label><textarea name="q_${id}" class="w-full p-2 rounded bg-gray-700"></textarea>`;
+        } else {
+          html = `<label class="block text-sm mb-1">${q.text}</label><input name="q_${id}" class="w-full p-2 rounded bg-gray-700" />`;
+        }
+        const node = document.createElement('div'); node.className = 'mb-3'; node.innerHTML = html; container.appendChild(node);
+      });
+
+      const area = document.getElementById('respond-area'); area.dataset.survey = surveyId; area.dataset.assignment = assignmentId; area.classList.remove('hidden');
+      window.scrollTo({top: area.offsetTop-20, behavior: 'smooth'});
+    }
+
+    document.getElementById('cancel-respond').addEventListener('click', ()=>{ document.getElementById('respond-area').classList.add('hidden'); });
+
+    document.getElementById('respond-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const area = document.getElementById('respond-area');
+      const surveyId = area.dataset.survey;
+      const assignmentId = area.dataset.assignment;
+      const form = e.currentTarget;
+      const fd = new FormData(form);
+      const obj = {};
+      for (const [k,v] of fd.entries()){
+        obj[k] = v;
+      }
+      const payload = { survey_template_id: parseInt(surveyId), responses: JSON.stringify(obj) };
+      const res = await fetch(`/surveys/${surveyId}/respond`, {
+        method:'POST',
+        headers: { 'Content-Type':'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      document.getElementById('respond-msg').innerText = res.ok ? 'Submitted' : (data.detail||data.message||'Error');
+      if (res.ok) { setTimeout(()=>{ document.getElementById('respond-area').classList.add('hidden'); loadAssigned(); }, 900); }
+    });
+
+    loadAssigned();
+  </script>
+</body>
+</html>

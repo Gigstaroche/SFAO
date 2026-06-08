@@ -63,8 +63,12 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        # For SQLite, use batch mode to allow table/constraint changes
+        render_batch = connection.dialect.name == "sqlite"
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=render_batch,
         )
 
         with context.begin_transaction():

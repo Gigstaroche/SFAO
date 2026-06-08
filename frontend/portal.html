@@ -13,209 +13,6 @@
         radial-gradient(50rem 26rem at 100% 100%, rgba(59, 130, 246, 0.2), transparent 52%),
         linear-gradient(145deg, #020617 0%, #0b1224 52%, #111827 100%);
     }
-
-    .auth-shell {
-      position: relative;
-      width: min(960px, 100%);
-      min-height: 580px;
-      border-radius: 28px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      background: rgba(15, 23, 42, 0.82);
-      box-shadow: 0 30px 80px rgba(2, 6, 23, 0.6);
-      overflow: hidden;
-      backdrop-filter: blur(8px);
-    }
-
-    .auth-form-panel {
-      position: absolute;
-      top: 0;
-      width: 50%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 500ms ease-in-out, opacity 500ms ease-in-out;
-      z-index: 2;
-      padding: 1.5rem;
-    }
-
-    .sign-in-panel {
-      left: 0;
-      transform: translateX(0%);
-    }
-
-    .sign-up-panel {
-      left: 0;
-      transform: translateX(100%);
-      opacity: 0;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .auth-shell.mode-register .sign-in-panel {
-      transform: translateX(-100%);
-    }
-
-    .auth-shell.mode-register .sign-up-panel {
-      transform: translateX(100%);
-      opacity: 1;
-      pointer-events: auto;
-      z-index: 3;
-    }
-
-    .auth-form-card {
-      width: 100%;
-      max-width: 360px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 20px;
-      padding: 1.25rem;
-      box-shadow: 0 18px 40px rgba(2, 6, 23, 0.25);
-    }
-
-    .overlay-shell {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 50%;
-      height: 100%;
-      overflow: hidden;
-      transition: transform 500ms ease-in-out;
-      z-index: 10;
-    }
-
-    .auth-shell.mode-register .overlay-shell {
-      transform: translateX(-100%);
-    }
-
-    .overlay {
-      position: relative;
-      left: -100%;
-      width: 200%;
-      height: 100%;
-      background: linear-gradient(130deg, #0891b2 0%, #2563eb 55%, #1d4ed8 100%);
-      transform: translateX(0);
-      transition: transform 500ms ease-in-out;
-    }
-
-    .auth-shell.mode-register .overlay {
-      transform: translateX(50%);
-    }
-
-    .overlay-panel {
-      position: absolute;
-      top: 0;
-      width: 50%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 2rem;
-      color: #eaf4ff;
-    }
-
-    .overlay-left {
-      transform: translateX(-20%);
-    }
-
-    .overlay-right {
-      right: 0;
-      transform: translateX(0);
-    }
-
-    .auth-shell.mode-register .overlay-left {
-      transform: translateX(0);
-    }
-
-    .auth-shell.mode-register .overlay-right {
-      transform: translateX(20%);
-    }
-
-    .ghost-btn {
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      color: #fff;
-      border-radius: 999px;
-      padding: 0.5rem 1rem;
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
-    }
-
-    .ghost-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-    }
-    .bg-slate-800 { background-color: #1e293b; }
-    .bg-gray-900 { background-color: #111827; }
-    .bg-gray-800 { background-color: #1f2937; }
-    .bg-gray-700 { background-color: #374151; }
-    .bg-blue-600 { background-color: #2563eb; }
-    .bg-blue-700 { background-color: #1d4ed8; }
-    .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.2); }
-    .bg-blue-600\/30 { background-color: rgba(37, 99, 235, 0.3); }
-    .bg-purple-600\/20 { background-color: rgba(147, 51, 234, 0.2); }
-    .hover\:bg-blue-600\/30:hover { background-color: rgba(37, 99, 235, 0.3); }
-    .hover\:text-red-400:hover { color: #f87171; }
-    .hover\:brightness-110:hover { filter: brightness(1.1); }
-    .transition { transition: all 180ms ease; }
-    .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.35); }
-    .shadow-2xl { box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
-    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .shrink-0 { flex-shrink: 0; }
-    .text-center { text-align: center; }
-    .uppercase { text-transform: uppercase; }
-    .tracking-wide { letter-spacing: 0.025em; }
-    .tracking-\[0\.16em\] { letter-spacing: 0.16em; }
-    .leading-tight { line-height: 1.1; }
-    .h-screen { height: 100vh; }
-    .pb-2 { padding-bottom: 0.5rem; }
-    .pt-2 { padding-top: 0.5rem; }
-    .text-\[11px\] { font-size: 11px; }
-    .border-gray-700\/70 { border-color: rgba(55, 65, 81, 0.7); }
-    .bg-gray-800\/90 { background-color: rgba(31, 41, 55, 0.9); }
-
-    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-    .gap-4 { gap: 1rem; }
-
-    #auth-screen .auth-shell,
-    #portal-screen main {
-      color: #fff;
-    }
-
-    #portal-screen nav,
-    #portal-screen main > div,
-    #portal-screen main > a,
-    #portal-screen main > section,
-    #portal-screen main > .bg-gray-800 {
-      border-radius: 0.75rem;
-    }
-
-    #portal-screen nav {
-      background: #111827;
-      border-bottom: 1px solid #374151;
-    }
-
-    #portal-screen main {
-      width: min(64rem, calc(100% - 2rem));
-      margin: 0 auto;
-      padding-top: 1.5rem;
-      padding-bottom: 1.5rem;
-    }
-
-    #portal-screen .grid {
-      display: grid;
-    }
-
-    #portal-screen .bg-gray-800,
-    #portal-screen .bg-gray-800\/90 {
-      background: #1f2937;
-      border: 1px solid #374151;
-    }
-
-    #portal-screen .bg-purple-600\/20,
     #portal-screen .bg-blue-600\/20 {
       border: 1px solid rgba(37, 99, 235, 0.45);
     }
@@ -314,14 +111,17 @@
               <input id="login-email" type="email" required placeholder="you@company.com"
                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
             </div>
+                        <div>
+                          <label class="text-xs text-slate-400 block mb-1.5">Organization Code</label>
+                          <input id="login-org-code" type="text" required placeholder="e.g., ACME2024"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+                        </div>
             <div class="relative">
               <label class="text-xs text-slate-400 block mb-1.5">Password</label>
               <div class="relative">
                 <input id="login-password" type="password" required placeholder="••••••••"
                   class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
-                <button type="button" id="toggle-login-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <i class="fa-solid fa-eye"></i>
-                </button>
+                <button type="button" id="toggle-login-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-label="Toggle password visibility">Show</button>
               </div>
             </div>
             <button type="submit"
@@ -351,14 +151,17 @@
               <input id="reg-email" type="email" required placeholder="you@company.com"
                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
             </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1.5">Organization Code</label>
+              <input id="reg-org-code" type="text" required placeholder="e.g., ACME2024"
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
+            </div>
             <div class="relative">
               <label class="text-xs text-slate-400 block mb-1.5">Password</label>
               <div class="relative">
                 <input id="reg-password" type="password" required placeholder="Min 6 characters"
                   class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
-                <button type="button" id="toggle-reg-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <i class="fa-solid fa-eye"></i>
-                </button>
+                <button type="button" id="toggle-reg-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-label="Toggle password visibility">Show</button>
               </div>
             </div>
             <button type="submit"
@@ -398,206 +201,154 @@
         <span class="font-semibold">SFAO Portal</span>
       </div>
       <div class="flex items-center gap-4 text-sm">
+        <a href="/portal/surveys.html" class="text-gray-300 hover:text-white text-xs">Surveys</a>
         <span class="text-gray-400">Welcome, <span id="user-name" class="text-white font-medium"></span></span>
         <span id="user-department" class="text-xs px-2 py-0.5 rounded-full bg-green-700"></span>
         <span id="user-role-badge" class="text-xs px-2 py-0.5 rounded-full bg-blue-700"></span>
         <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition text-xs">Logout</button>
-      </div>
-    </nav>
-
-    <main class="flex-1 p-6 max-w-5xl mx-auto w-full">
-      <h1 class="text-xl font-bold mb-1">Welcome back, <span id="portal-name"></span> 👋</h1>
-      <p class="text-gray-400 text-sm mb-6">Here's your SFAO quick access panel.</p>
-
-      <!-- Quick Action Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="action-cards">
-        <a href="/portal/dashboard"
-          class="bg-purple-600/20 border border-purple-600 rounded-xl p-5 hover:bg-purple-600/30 transition block">
-          <div class="text-2xl mb-2">📊</div>
-          <h2 class="font-semibold text-sm mb-1">View Dashboard</h2>
-          <p class="text-gray-400 text-xs">See the executive real-time sentiment analytics.</p>
-        </a>
-        <a href="/portal/survey.html"
-          class="bg-blue-600/20 border border-blue-600 rounded-xl p-5 hover:bg-blue-600/30 transition block">
-          <div class="text-2xl mb-2">📝</div>
-          <h2 class="font-semibold text-sm mb-1">Take Survey</h2>
-          <p class="text-gray-400 text-xs">Submit your feedback and suggestions.</p>
-        </a>
-        <div class="bg-gray-800 border border-gray-600 rounded-xl p-5">
-          <div class="text-2xl mb-2">📈</div>
-          <h2 class="font-semibold text-sm mb-1">System Stats</h2>
-          <p class="text-gray-400 text-xs">Total entries: <span id="portal-total" class="text-white font-bold">–</span></p>
-          <p class="text-gray-400 text-xs mt-1">High urgency: <span id="portal-urgency" class="text-red-400 font-bold">–</span></p>
-        </div>
-      </div>
-
-      <!-- Recent Feedback -->
-      <div class="bg-gray-800 rounded-xl p-5">
-        <h2 class="text-sm font-semibold text-gray-300 mb-4">Recent Feedback (Last 10)</h2>
-        <div id="portal-feed" class="space-y-2 text-sm text-gray-300">
-          <p class="text-gray-500">Loading...</p>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <script>
-    const API = window.location.origin;
-
-    function getAuthHeaders(user, extra = {}) {
-      const headers = { ...extra };
-      if (user?.access_token) {
-        headers.Authorization = 'Bearer ' + user.access_token;
-      }
-      return headers;
-    }
-
-    function switchTab(tab) {
-      const shell = document.getElementById('auth-shell');
-      shell.classList.toggle('mode-register', tab === 'register');
-    }
-
-    async function doLogin(e) {
-      e.preventDefault();
-      const email    = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-      try {
-        const res  = await fetch(`${API}/auth/login`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          const user = data?.data || data;
-          sessionStorage.setItem('sfao_user', JSON.stringify(user));
-          showPortal(user);
-        } else {
-          showError('login-error', data.detail || data.message || 'Login failed');
-        }
-      } catch {
-        showError('login-error', 'Cannot reach server. Start the backend first.');
-      }
-    }
-
-    async function doRegister(e) {
-      e.preventDefault();
-      const name     = document.getElementById('reg-name').value;
-      const email    = document.getElementById('reg-email').value;
-      const password = document.getElementById('reg-password').value;
-      if (password.length < 6) return showMsg('reg-message', 'Password must be at least 6 characters.', 'error');
-      try {
-        const res  = await fetch(`${API}/auth/register`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          showMsg('reg-message', '✓ Account created! Please login.', 'success');
-          setTimeout(() => switchTab('login'), 1500);
-        } else {
-          showMsg('reg-message', data.detail || data.message || 'Registration failed', 'error');
-        }
-      } catch {
-        showMsg('reg-message', 'Cannot reach server.', 'error');
-      }
-    }
-
-    function showError(id, msg) {
-      const el = document.getElementById(id);
-      el.textContent = msg;
-      el.classList.remove('hidden');
-    }
-
-    function showMsg(id, msg, type) {
-      const el = document.getElementById(id);
-      el.textContent = msg;
-      el.className = `text-xs text-center ${type==='success' ? 'text-green-400' : 'text-red-400'}`;
-      el.classList.remove('hidden');
-    }
-
-    async function showPortal(user) {
-      const currentUser = user?.data || user;
-      document.getElementById('auth-screen').classList.add('hidden');
-      document.getElementById('portal-screen').classList.remove('hidden');
-      document.getElementById('user-name').textContent   = currentUser.name;
-      document.getElementById('portal-name').textContent = currentUser.name;
-      document.getElementById('user-role-badge').textContent = `👤 ${currentUser.role || 'User'}`;
-      document.getElementById('user-department').textContent = currentUser.department ? `🏢 ${currentUser.department}` : '';
-
-      try {
-        const authHeaders = getAuthHeaders(currentUser);
-        const [sumRes, feedRes] = await Promise.all([
-          fetch(`/summary`, { headers: authHeaders }),
-          fetch(`/feed?limit=10`, { headers: authHeaders })
-        ]);
-        const summary = await sumRes.json();
-        const feed    = await feedRes.json();
-
-        document.getElementById('portal-total').textContent   = summary.total;
-        document.getElementById('portal-urgency').textContent = summary.urgencies?.High ?? 0;
-
-        const urgencyColor = { High: 'text-red-400', Medium: 'text-orange-400', Low: 'text-gray-400' };
-        document.getElementById('portal-feed').innerHTML = feed.length
-          ? feed.map(item => `
-              <div class="flex items-center gap-2 border-b border-gray-700 pb-2">
-                <span class="text-xs font-semibold ${urgencyColor[item.urgency]||'text-gray-400'} w-14 shrink-0">${item.urgency}</span>
-                <span class="flex-1 text-xs">${item.text}</span>
-                <span class="text-xs text-gray-500">${item.source}</span>
-              </div>`).join('')
-          : '<p class="text-gray-500 text-xs">No feedback yet.</p>';
-      } catch {
-        document.getElementById('portal-feed').innerHTML = '<p class="text-red-400 text-xs">Could not load data.</p>';
-      }
-    }
-
-    function logout() {
-      sessionStorage.removeItem('sfao_user');
-      document.getElementById('portal-screen').classList.add('hidden');
-      document.getElementById('auth-screen').classList.remove('hidden');
-    }
-
-    // Password toggle handlers
-    const tLogin = document.getElementById('toggle-login-password');
-    if (tLogin) tLogin.addEventListener('click', () => {
-      const inp = document.getElementById('login-password');
-      if (!inp) return;
-      inp.type = inp.type === 'password' ? 'text' : 'password';
-      tLogin.innerHTML = inp.type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
-    });
-
-    const tReg = document.getElementById('toggle-reg-password');
-    if (tReg) tReg.addEventListener('click', () => {
-      const inp = document.getElementById('reg-password');
-      if (!inp) return;
-      inp.type = inp.type === 'password' ? 'text' : 'password';
-      tReg.innerHTML = inp.type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
-    });
-
-    // Password reset modal (portal)
-    const portalForgot = document.getElementById('forgot-password-link');
-    if (portalForgot) portalForgot.addEventListener('click', (e) => {
-      e.preventDefault();
-      // Create a simple prompt flow: request email then code+new password
-      const email = prompt('Enter your work email to receive a reset code');
-      if (!email) return;
-      fetch(`${API}/auth/request-reset`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) })
-        .then((r) => r.json())
-        .then(() => {
-          const code = prompt('Enter the 6-digit code you received via email');
-          if (!code) return alert('Reset cancelled');
-          const newPw = prompt('Enter your new password (min 6 chars)');
-          if (!newPw || newPw.length < 6) return alert('Password must be at least 6 characters');
-          fetch(`${API}/auth/confirm-reset`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, new_password: newPw }) })
-            .then((r) => r.json())
-            .then((data) => alert(data.message || 'Password updated'))
-            .catch(() => alert('Failed to update password'));
-        })
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <title>Redirecting…</title>
+          <meta http-equiv="refresh" content="0;url=/" />
+          <script>window.location.replace('/');</script>
+        </head>
+        <body>
+          Redirecting to the main app...
+        </body>
+      </html>
         .catch(() => alert('Could not send reset code'));
     });
 
     // Auto-login if session exists
     const saved = sessionStorage.getItem('sfao_user');
     if (saved) showPortal(JSON.parse(saved));
+
+    // Survey Modal
+    function openSurveyModal() {
+      const currentUser = JSON.parse(sessionStorage.getItem('sfao_user') || '{}');
+      if (!currentUser.name) {
+        alert('Please log in first');
+        return;
+      }
+      const modal = document.getElementById('survey-modal');
+      if (modal) modal.style.display = 'flex';
+      document.getElementById('survey-name').value = currentUser.name || '';
+      document.getElementById('survey-text').value = '';
+      document.querySelector('input[name="survey-rating"][value="5"]').checked = true;
+      document.getElementById('survey-department').value = currentUser.department || 'General';
+    }
+
+    function closeSurveyModal() {
+      const modal = document.getElementById('survey-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function submitSurvey(e) {
+      e.preventDefault();
+      const name = document.getElementById('survey-name').value.trim();
+      const department = document.getElementById('survey-department').value.trim();
+      const rating = parseInt(document.querySelector('input[name="survey-rating"]:checked').value);
+      const text = document.getElementById('survey-text').value.trim();
+
+      if (!name || !department || !text) {
+        alert('Please fill out all fields');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/survey`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, department, rating, text })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('✓ Survey submitted successfully!');
+          closeSurveyModal();
+        } else {
+          alert('Error: ' + (data.detail || data.message || 'Failed to submit survey'));
+        }
+      } catch (err) {
+        console.error('Survey submission error:', err);
+        alert('Could not submit survey. Server may be unavailable.');
+      }
+    }
+
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+      const modal = document.getElementById('survey-modal');
+      if (e.target === modal) closeSurveyModal();
+    });
   </script>
+
+  <!-- Survey Modal -->
+  <div id="survey-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+    <div style="background: #1f2937; border: 1px solid #374151; border-radius: 1rem; padding: 2rem; max-width: 500px; width: 90%;">
+      <h2 style="color: #fff; font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0;">Quick Survey</h2>
+      <p style="color: #9ca3af; font-size: 0.875rem; margin: 0 0 1.5rem 0;">Your feedback helps us improve. Takes about 1 minute.</p>
+      
+      <form onsubmit="submitSurvey(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label style="display: block; color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Your Name</label>
+          <input id="survey-name" type="text" required readonly
+            style="width: 100%; background: #111827; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.5rem; color: #fff;"/>
+        </div>
+
+        <div>
+          <label style="display: block; color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Department</label>
+          <select id="survey-department" required
+            style="width: 100%; background: #111827; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.5rem; color: #fff;">
+            <option value="General">General</option>
+            <option value="Support">Support</option>
+            <option value="Technical">Technical</option>
+            <option value="Product">Product</option>
+            <option value="HR">HR</option>
+            <option value="Finance">Finance</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="display: block; color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Rating (1-5)</label>
+          <div style="display: flex; gap: 0.5rem; justify-content: space-around;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #9ca3af;">
+              <input type="radio" name="survey-rating" value="1" style="cursor: pointer;"/> 😞
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #9ca3af;">
+              <input type="radio" name="survey-rating" value="2" style="cursor: pointer;"/> 😐
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #9ca3af;">
+              <input type="radio" name="survey-rating" value="3" style="cursor: pointer;"/> 🙂
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #9ca3af;">
+              <input type="radio" name="survey-rating" value="4" style="cursor: pointer;"/> 😊
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #9ca3af;">
+              <input type="radio" name="survey-rating" value="5" style="cursor: pointer;" checked/> 😍
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label style="display: block; color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Your Feedback</label>
+          <textarea id="survey-text" required placeholder="What's on your mind? Suggestions, complaints, or praise..."
+            style="width: 100%; height: 100px; background: #111827; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.5rem; color: #fff; font-family: inherit; resize: vertical;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+          <button type="submit" style="flex: 1; background: linear-gradient(to right, #06b6d4, #2563eb); color: #fff; padding: 0.75rem; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">
+            Submit Survey
+          </button>
+          <button type="button" onclick="closeSurveyModal()" style="flex: 1; background: #374151; color: #9ca3af; padding: 0.75rem; border: 1px solid #4b5563; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </body>
 </html>
+

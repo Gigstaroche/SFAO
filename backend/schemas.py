@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List
+from typing import Any, Dict, Optional, List
 
 # Request Models
 class FeedbackCreate(BaseModel):
@@ -80,6 +80,9 @@ class SurveyTemplateResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    class Config:
+        from_attributes = True
+
 
 class OrganizationCreate(BaseModel):
     name: str = Field(..., min_length=2, description="Organization display name")
@@ -105,6 +108,55 @@ class BuyerDepartmentCreate(BaseModel):
 
 class RolePermissionsUpdate(BaseModel):
     permissions: List[str] = Field(default_factory=list, description="Allowed permissions for role")
+
+class SurveyAssignmentCreate(BaseModel):
+    survey_template_id: int = Field(..., ge=1, description="Survey template ID")
+    assigned_to_user_id: Optional[int] = Field(None, ge=1, description="Assign to specific user")
+    assigned_to_department_id: Optional[int] = Field(None, ge=1, description="Assign to all users in department")
+    assigned_to_organization_id: Optional[int] = Field(None, ge=1, description="Assign to all users in organization")
+    due_date: Optional[datetime] = Field(None, description="Survey deadline")
+
+
+class SurveyAssignmentResponse(BaseModel):
+    id: int
+    survey_template_id: int
+    assigned_to_user_id: Optional[int]
+    assigned_to_department_id: Optional[int]
+    assigned_to_organization_id: Optional[int]
+    assigned_by: int
+    assignment_status: str
+    assigned_at: datetime
+    due_date: Optional[datetime]
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SurveyResponseCreate(BaseModel):
+    survey_template_id: int = Field(..., ge=1, description="Survey template ID")
+    responses: str = Field(..., description="JSON string of {question_id: answer}")
+
+
+class SurveyResponseUpdate(BaseModel):
+    responses: Optional[str] = Field(None, description="JSON string of {question_id: answer}")
+    status: Optional[str] = Field(None, description="Response status: draft, in-progress, submitted")
+
+
+class SurveyResponseData(BaseModel):
+    id: int
+    survey_template_id: int
+    respondent_user_id: int
+    survey_assignment_id: Optional[int]
+    responses: str
+    start_time: datetime
+    submitted_at: Optional[datetime]
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
 
 # Response Models
 class FeedbackResponse(BaseModel):
@@ -161,15 +213,15 @@ class BuyerDepartmentResponse(BaseModel):
 
 class SummaryResponse(BaseModel):
     total: int
-    sentiments: dict
-    categories: dict
-    sources: dict
-    urgencies: dict
+    sentiments: Dict[str, int]
+    categories: Dict[str, int]
+    sources: Dict[str, int]
+    urgencies: Dict[str, int]
 
 class APIResponse(BaseModel):
     success: bool
     message: str
-    data: Optional[dict] = None
+    data: Optional[Any] = None
 
 class UserSettingsResponse(BaseModel):
     user_id: int

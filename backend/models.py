@@ -146,6 +146,37 @@ class UserSettings(Base):
     notifications_enabled = Column(Boolean, default=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+class SurveyAssignment(Base):
+    __tablename__ = "survey_assignments"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    survey_template_id = Column(Integer, ForeignKey("survey_templates.id"), nullable=False, index=True)
+    assigned_to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    assigned_to_department_id = Column(Integer, ForeignKey("departments.id"), nullable=True, index=True)
+    assigned_to_organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    assignment_status = Column(String, default="pending", index=True)  # pending, in-progress, submitted, expired
+    assigned_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    due_date = Column(DateTime(timezone=True), nullable=True)
+    reminder_sent_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class SurveyResponse(Base):
+    __tablename__ = "survey_responses"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    survey_template_id = Column(Integer, ForeignKey("survey_templates.id"), nullable=False, index=True)
+    respondent_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    survey_assignment_id = Column(Integer, ForeignKey("survey_assignments.id"), nullable=True, index=True)
+    responses = Column(Text, nullable=False)  # JSON string of {question_id: answer}
+    start_time = Column(DateTime(timezone=True), server_default=func.now())
+    submitted_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    status = Column(String, default="in-progress", index=True)  # in-progress, submitted, draft
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
 # Create tables
 def create_tables():
     Base.metadata.create_all(bind=engine)

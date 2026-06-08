@@ -32,6 +32,8 @@ from models import (
     get_db,
     create_tables,
     SessionLocal,
+    SurveyAssignment,
+    SurveyResponse,
 )
 from schemas import (
     FeedbackCreate, SurveyCreate, StatusUpdate, UserCreate, UserLogin, EmailCodeRequest,
@@ -39,7 +41,8 @@ from schemas import (
     UserSettingsUpdate, UserSettingsResponse, UserRoleUpdate,
     OrganizationCreate, DepartmentCreate, BuyerCreate, BuyerDepartmentCreate, RolePermissionsUpdate, FeedbackRouteUpdate,
     FeedbackResponse, UserResponse, BuyerResponse, BuyerDepartmentResponse, SummaryResponse, APIResponse,
-    SurveyTemplateCreate, SurveyTemplateUpdate, SurveyTemplateResponse
+    SurveyTemplateCreate, SurveyTemplateUpdate, SurveyTemplateResponse,
+    SurveyAssignmentCreate, SurveyAssignmentResponse, SurveyResponseCreate, SurveyResponseUpdate, SurveyResponseData,
 )
 
 VALID_ROLES = {
@@ -71,6 +74,8 @@ ROLE_PERMISSIONS = {
         "users:manage_settings_any",
         "monitoring:view",
         "monitoring:ingest",
+        "survey_admin",
+        "employee",
     },
     "admin": {
         "feedback:view",
@@ -81,24 +86,32 @@ ROLE_PERMISSIONS = {
         "users:manage_settings_any",
         "monitoring:view",
         "monitoring:ingest",
+        "survey_admin",
+        "employee",
     },
     "survey_admin": {
         "feedback:view",
         "feedback:ingest",
         "feedback:update_status",
+        "survey_admin",
+        "employee",
     },
     "survey_manager": {
         "feedback:view",
         "feedback:ingest",
         "feedback:update_status",
+        "survey_admin",
+        "employee",
     },
     "analyst": {
         "feedback:view",
         "feedback:ingest",
         "feedback:update_status",
+        "employee",
     },
     "employee": {
         "feedback:view",
+        "employee",
     },
 }
 
@@ -1764,6 +1777,254 @@ def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "SFAO API"}
 
+# ============================================================================
+# SURVEY MANAGEMENT ENDPOINTS (Admin Creation, Assignment, Response Tracking)
+# ============================================================================
+
+@app.post("/surveys", response_model=APIResponse)
+def create_survey_template(
+    payload: SurveyTemplateCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("survey_admin")),
+):
+    """Create a new survey template (admin only)"""
+    survey = SurveyTemplate(
+        name=payload.name.strip(),
+        description=payload.description,
+        questions=payload.questions,
+        created_by=actor.id,
+        is_published=False,
+    )
+    db.add(survey)
+    db.commit()
+    db.refresh(survey)
+    record_audit_event(db, actor, "survey.create", "survey_template", str(survey.id), {"name": survey.name})
+    return APIResponse(
+        success=True,
+        message="Survey template created",
+        data={"id": survey.id, "name": survey.name, "created_at": survey.created_at.isoformat()},
+    )
+
+
+@app.get("/surveys", response_model=APIResponse)
+def list_surveys(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("survey_admin")),
+    is_published: Optional[bool] = Query(None),
+):
+    """List all survey templates"""
+    query = db.query(SurveyTemplate)
+    if is_published is not None:
+        query = query.filter(SurveyTemplate.is_published == is_published)
+    surveys = query.order_by(SurveyTemplate.created_at.desc()).all()
+    data = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "description": s.description,
+            "is_published": bool(s.is_published),
+            "created_by": s.created_by,
+            "created_at": s.created_at.isoformat(),
+            "updated_at": s.updated_at.isoformat(),
+        }
+        for s in surveys
+    ]
+    return APIResponse(success=True, message="Surveys retrieved", data=data)
+
+
+@app.get("/surveys/template/{survey_id}", response_model=APIResponse)
+def get_survey(
+    survey_id: int,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("survey_admin")),
+):
+    """Get a specific survey template"""
+    survey = db.query(SurveyTemplate).filter(SurveyTemplate.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    data = {
+        "id": survey.id,
+        "name": survey.name,
+        "description": survey.description,
+        "questions": survey.questions,
+        "is_published": bool(survey.is_published),
+        "created_by": survey.created_by,
+        "created_at": survey.created_at.isoformat(),
+        "updated_at": survey.updated_at.isoformat(),
+    }
+    return APIResponse(success=True, message="Survey retrieved", data=data)
+
+
+@app.put("/surveys/{survey_id}", response_model=APIResponse)
+def update_survey_template(
+    survey_id: int,
+    payload: SurveyTemplateUpdate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("survey_admin")),
+):
+    """Update a survey template"""
+    survey = db.query(SurveyTemplate).filter(SurveyTemplate.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    if payload.name:
+        survey.name = payload.name.strip()
+    if payload.description is not None:
+        survey.description = payload.description
+    if payload.questions:
+        survey.questions = payload.questions
+    if payload.is_published is not None:
+        survey.is_published = payload.is_published
+    
+    db.commit()
+    db.refresh(survey)
+    record_audit_event(db, actor, "survey.update", "survey_template", str(survey.id), {"name": survey.name})
+    return APIResponse(success=True, message="Survey template updated", data={"id": survey.id})
+
+
+@app.post("/surveys/{survey_id}/assign", response_model=APIResponse)
+def assign_survey(
+    survey_id: int,
+    payload: SurveyAssignmentCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("survey_admin")),
+):
+    """Assign a survey to users, departments, or organizations"""
+    survey = db.query(SurveyTemplate).filter(SurveyTemplate.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    assignment = SurveyAssignment(
+        survey_template_id=survey_id,
+        assigned_to_user_id=payload.assigned_to_user_id,
+        assigned_to_department_id=payload.assigned_to_department_id,
+        assigned_to_organization_id=payload.assigned_to_organization_id,
+        assigned_by=actor.id,
+        assignment_status="pending",
+        due_date=payload.due_date,
+    )
+    db.add(assignment)
+    db.commit()
+    db.refresh(assignment)
+    record_audit_event(db, actor, "survey.assign", "survey_assignment", str(assignment.id), {"survey_id": survey_id})
+    return APIResponse(
+        success=True,
+        message="Survey assigned successfully",
+        data={"assignment_id": assignment.id, "survey_id": survey_id},
+    )
+
+
+@app.get("/surveys/assigned", response_model=APIResponse)
+def get_assigned_surveys(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("employee")),
+):
+    """Get surveys assigned to the current user"""
+    assignments = db.query(SurveyAssignment).filter(
+        (SurveyAssignment.assigned_to_user_id == actor.id) |
+        (SurveyAssignment.assigned_to_department_id == actor.department_id) |
+        (SurveyAssignment.assigned_to_organization_id == actor.organization_id)
+    ).all()
+    
+    data = []
+    for assignment in assignments:
+        survey = db.query(SurveyTemplate).filter(SurveyTemplate.id == assignment.survey_template_id).first()
+        if survey:
+            # Check if user already responded
+            response = db.query(SurveyResponse).filter(
+                (SurveyResponse.survey_assignment_id == assignment.id) |
+                (SurveyResponse.respondent_user_id == actor.id)
+            ).first()
+            
+            data.append({
+                "assignment_id": assignment.id,
+                "survey_id": survey.id,
+                "survey_name": survey.name,
+                "survey_description": survey.description,
+                "questions": survey.questions,
+                "due_date": assignment.due_date.isoformat() if assignment.due_date else None,
+                "assigned_at": assignment.assigned_at.isoformat(),
+                "status": assignment.assignment_status,
+                "already_responded": response is not None,
+            })
+    
+    return APIResponse(success=True, message="Assigned surveys retrieved", data=data)
+
+
+@app.post("/surveys/{survey_id}/respond", response_model=APIResponse)
+def submit_survey_response(
+    survey_id: int,
+    payload: SurveyResponseCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("employee")),
+):
+    """Submit a survey response"""
+    survey = db.query(SurveyTemplate).filter(SurveyTemplate.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    # Check if assignment exists
+    assignment = db.query(SurveyAssignment).filter(
+        (SurveyAssignment.survey_template_id == survey_id) &
+        ((SurveyAssignment.assigned_to_user_id == actor.id) |
+         (SurveyAssignment.assigned_to_department_id == actor.department_id) |
+         (SurveyAssignment.assigned_to_organization_id == actor.organization_id))
+    ).first()
+    
+    response = SurveyResponse(
+        survey_template_id=survey_id,
+        respondent_user_id=actor.id,
+        survey_assignment_id=assignment.id if assignment else None,
+        responses=payload.responses,
+        status="submitted",
+        submitted_at=datetime.utcnow(),
+    )
+    db.add(response)
+    
+    # Update assignment status
+    if assignment:
+        assignment.assignment_status = "submitted"
+        db.add(assignment)
+    
+    db.commit()
+    db.refresh(response)
+    record_audit_event(db, actor, "survey.respond", "survey_response", str(response.id), {"survey_id": survey_id})
+    return APIResponse(
+        success=True,
+        message="Survey response submitted",
+        data={"response_id": response.id, "survey_id": survey_id},
+    )
+
+
+@app.get("/surveys/{survey_id}/responses", response_model=APIResponse)
+def get_survey_responses(
+    survey_id: int,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("survey_admin")),
+):
+    """Get all responses for a survey (admin only)"""
+    survey = db.query(SurveyTemplate).filter(SurveyTemplate.id == survey_id).first()
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    responses = db.query(SurveyResponse).filter(SurveyResponse.survey_template_id == survey_id).all()
+    
+    data = [
+        {
+            "response_id": r.id,
+            "respondent_id": r.respondent_user_id,
+            "responses": r.responses,
+            "status": r.status,
+            "submitted_at": r.submitted_at.isoformat() if r.submitted_at else None,
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in responses
+    ]
+    return APIResponse(success=True, message="Survey responses retrieved", data=data)
+
+
+# Health check endpoint
 
 if __name__ == "__main__":
     import uvicorn

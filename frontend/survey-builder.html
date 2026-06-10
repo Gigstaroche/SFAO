@@ -624,6 +624,7 @@
       <div class="nav-group">
         <p class="nav-title">Main</p>
         <a class="nav-link" href="/portal/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+        <a class="nav-link nav-module-survey" href="/portal/survey.html"><i class="fa-solid fa-clipboard-list"></i>Survey</a>
         <a class="nav-link active nav-module-survey-builder" href="/portal/survey-builder"><i class="fa-solid fa-clipboard-list"></i>Survey Builder</a>
       </div>
 
@@ -893,13 +894,14 @@
         'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
         'department_resolver': ['dashboard', 'alerts', 'operations', 'social'],
         'executive_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
-        'employee': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
-        'user': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
+        'employee': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+        'user': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
       };
       
       const allowedModules = ROLE_MODULE_ACCESS[role] || ROLE_MODULE_ACCESS['employee'];
 
       const moduleMap = {
+        'survey': '.nav-module-survey',
         'alerts': '#nav-alerts',
         'categories': '#nav-categories',
         'channels': '#nav-channels',

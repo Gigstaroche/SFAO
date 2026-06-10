@@ -1697,6 +1697,7 @@
       <div class="nav-group">
         <p class="nav-title">Main</p>
         <a class="nav-link active" href="#dashboard" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+        <a class="nav-link nav-module-survey" href="survey.html"><i class="fa-solid fa-clipboard-list"></i>Survey</a>
         <a class="nav-link nav-module-survey-builder" href="survey-builder.html"><i class="fa-solid fa-clipboard-list"></i>Survey Builder</a>
       </div>
 
@@ -2113,8 +2114,8 @@
       'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
       'department_resolver': ['dashboard', 'alerts', 'operations', 'social'],
       'executive_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports', 'admin'],
-      'employee': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
-      'user': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
+      'employee': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+      'user': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
     };
 
     const defaultProfile = {
@@ -2165,6 +2166,7 @@
       console.log('Updating visibility for role:', role, 'Allowed:', allowedModules);
 
       const moduleMap = {
+        'survey': '.nav-module-survey',
         'alerts': '#nav-alerts',
         'categories': '#nav-categories',
         'channels': '#nav-channels',

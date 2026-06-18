@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 import os
+import uuid
 
 # Database URL
 DATABASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sfao.db"))
@@ -98,6 +99,10 @@ class SurveyTemplate(Base):
     questions = Column(Text, nullable=False)  # JSON string of questions
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     is_published = Column(Boolean, default=False)
+    share_token = Column(String, nullable=True, unique=True, index=True)
+    share_mode = Column(String, default="employee", index=True)
+    allow_anonymous = Column(Boolean, default=True)
+    published_at = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -167,8 +172,12 @@ class SurveyResponse(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     survey_template_id = Column(Integer, ForeignKey("survey_templates.id"), nullable=False, index=True)
-    respondent_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    respondent_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     survey_assignment_id = Column(Integer, ForeignKey("survey_assignments.id"), nullable=True, index=True)
+    respondent_name = Column(String, nullable=True)
+    respondent_email = Column(String, nullable=True)
+    response_source = Column(String, default="employee", index=True)
+    is_anonymous = Column(Boolean, default=False)
     responses = Column(Text, nullable=False)  # JSON string of {question_id: answer}
     start_time = Column(DateTime(timezone=True), server_default=func.now())
     submitted_at = Column(DateTime(timezone=True), nullable=True, index=True)
@@ -183,6 +192,7 @@ def create_tables():
     ensure_user_settings_schema()
     ensure_governance_schema()
     ensure_feedback_routing_schema()
+    ensure_survey_schema()
 
 def ensure_user_settings_schema():
     """Backfill user_settings columns for existing SQLite databases."""
@@ -272,6 +282,67 @@ def ensure_feedback_routing_schema():
         connection.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS ix_feedback_routing_status ON feedback(routing_status)"
         )
+
+        connection.commit()
+
+
+def ensure_survey_schema():
+    """Backfill survey template/share columns for existing SQLite databases."""
+    with engine.connect() as connection:
+        template_exists = connection.exec_driver_sql(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='survey_templates'"
+        ).fetchone()
+        response_exists = connection.exec_driver_sql(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='survey_responses'"
+        ).fetchone()
+
+        if template_exists:
+            rows = connection.exec_driver_sql("PRAGMA table_info(survey_templates)").fetchall()
+            columns = {row[1] for row in rows}
+            if "share_token" not in columns:
+                connection.exec_driver_sql("ALTER TABLE survey_templates ADD COLUMN share_token VARCHAR")
+            if "share_mode" not in columns:
+                connection.exec_driver_sql("ALTER TABLE survey_templates ADD COLUMN share_mode VARCHAR DEFAULT 'employee'")
+            if "allow_anonymous" not in columns:
+                connection.exec_driver_sql("ALTER TABLE survey_templates ADD COLUMN allow_anonymous BOOLEAN DEFAULT 1")
+            if "published_at" not in columns:
+                connection.exec_driver_sql("ALTER TABLE survey_templates ADD COLUMN published_at DATETIME")
+
+            # Backfill tokens for already-published templates.
+            published_rows = connection.exec_driver_sql(
+                "SELECT id FROM survey_templates WHERE is_published = 1 AND (share_token IS NULL OR share_token = '')"
+            ).fetchall()
+            for row in published_rows:
+                connection.exec_driver_sql(
+                    "UPDATE survey_templates SET share_token = ?, share_mode = COALESCE(share_mode, 'employee'), allow_anonymous = COALESCE(allow_anonymous, 1), published_at = COALESCE(published_at, CURRENT_TIMESTAMP) WHERE id = ?",
+                    (uuid.uuid4().hex, row[0]),
+                )
+
+            connection.exec_driver_sql(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_survey_templates_share_token ON survey_templates(share_token)"
+            )
+            connection.exec_driver_sql(
+                "CREATE INDEX IF NOT EXISTS ix_survey_templates_share_mode ON survey_templates(share_mode)"
+            )
+            connection.exec_driver_sql(
+                "CREATE INDEX IF NOT EXISTS ix_survey_templates_published_at ON survey_templates(published_at)"
+            )
+
+        if response_exists:
+            rows = connection.exec_driver_sql("PRAGMA table_info(survey_responses)").fetchall()
+            columns = {row[1] for row in rows}
+            if "respondent_name" not in columns:
+                connection.exec_driver_sql("ALTER TABLE survey_responses ADD COLUMN respondent_name VARCHAR")
+            if "respondent_email" not in columns:
+                connection.exec_driver_sql("ALTER TABLE survey_responses ADD COLUMN respondent_email VARCHAR")
+            if "response_source" not in columns:
+                connection.exec_driver_sql("ALTER TABLE survey_responses ADD COLUMN response_source VARCHAR DEFAULT 'employee'")
+            if "is_anonymous" not in columns:
+                connection.exec_driver_sql("ALTER TABLE survey_responses ADD COLUMN is_anonymous BOOLEAN DEFAULT 0")
+
+            connection.exec_driver_sql(
+                "CREATE INDEX IF NOT EXISTS ix_survey_responses_response_source ON survey_responses(response_source)"
+            )
 
         connection.commit()
 

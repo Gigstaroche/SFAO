@@ -848,11 +848,22 @@
         }
         return;
       }
+
+      if (!canAccessSurveyBuilder(currentUser.role)) {
+        window.location.href = '/portal/dashboard';
+        return;
+      }
+
       applyUserProfile(currentUser);
 
       try {
         const data = await apiJson(`${API}/auth/me`, { headers: getAuthHeaders() });
         currentUser = { ...currentUser, ...(data?.data || data) };
+        if (!canAccessSurveyBuilder(currentUser.role)) {
+          sessionStorage.removeItem('sfao_user');
+          window.location.href = '/portal/dashboard';
+          return;
+        }
         sessionStorage.setItem('sfao_user', JSON.stringify(currentUser));
         applyUserProfile(currentUser);
       } catch (err) {
@@ -882,6 +893,11 @@
       return aliases[raw] || raw;
     }
 
+    function canAccessSurveyBuilder(role) {
+      const normalized = normalizeRole(role);
+      return ['super_admin', 'admin', 'survey_admin', 'survey_manager', 'executive_admin'].includes(normalized);
+    }
+
     function updateMenuVisibility(userRole) {
       const role = normalizeRole(userRole);
       const ROLE_MODULE_ACCESS = {
@@ -894,8 +910,8 @@
         'analyst': ['dashboard', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
         'department_resolver': ['dashboard', 'alerts', 'operations', 'social'],
         'executive_admin': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
-        'employee': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
-        'user': ['dashboard', 'survey', 'survey_builder', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
+        'employee': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports'],
+        'user': ['dashboard', 'survey', 'alerts', 'categories', 'channels', 'operations', 'social', 'reports']
       };
       
       const allowedModules = ROLE_MODULE_ACCESS[role] || ROLE_MODULE_ACCESS['employee'];
@@ -980,14 +996,34 @@
             <span class="badge ${template.is_published ? 'badge-pos' : 'badge-neu'}">${template.is_published ? 'Published' : 'Draft'}</span>
           </div>
           <p class="text-sm text-gray-400 mb-3">${template.description || 'No description'}</p>
+          <p class="text-[11px] text-gray-500 mb-3">
+            ${template.is_published ? `Share link ready${template.allow_anonymous ? ' · anonymous allowed' : ''}` : 'Publish to generate a share link'}
+          </p>
           <div class="flex gap-2">
             <button class="btn btn-sm" onclick="editTemplate(${template.id})">Edit</button>
             <button class="btn btn-sm" onclick="duplicateTemplate(${template.id})">Duplicate</button>
             <button class="btn btn-sm" onclick="togglePublish(${template.id}, ${!template.is_published})">${template.is_published ? 'Unpublish' : 'Publish'}</button>
+            <button class="btn btn-sm" onclick="copyTemplateLink(${template.id}, '${template.share_token || ''}', ${template.is_published ? 'true' : 'false'})">Copy Link</button>
             <button class="btn btn-sm btn-danger" onclick="deleteTemplate(${template.id})">Delete</button>
           </div>
         </div>
       `).join('');
+    }
+
+    async function copyTemplateLink(id, token, isPublished) {
+      if (!isPublished || !token) {
+        showToast('Publish the survey first to generate a share link');
+        return;
+      }
+
+      const shareLink = `${window.location.origin}/portal/survey.html?share=${encodeURIComponent(token)}`;
+      try {
+        await navigator.clipboard.writeText(shareLink);
+        showToast('Survey link copied');
+      } catch (err) {
+        console.error('Copy link error:', err);
+        showToast('Unable to copy link');
+      }
     }
 
     async function editTemplate(id) {
@@ -1175,7 +1211,11 @@
     // Immediate visibility if session exists
     currentUser = getSessionUser();
     if (currentUser) {
-      applyUserProfile(currentUser);
+      if (canAccessSurveyBuilder(currentUser.role)) {
+        applyUserProfile(currentUser);
+      } else {
+        window.location.href = '/portal/dashboard';
+      }
     }
 
     loadUserProfile().then(() => {

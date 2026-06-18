@@ -112,8 +112,8 @@
                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
             </div>
                         <div>
-                          <label class="text-xs text-slate-400 block mb-1.5">Organization Code</label>
-                          <input id="login-org-code" type="text" required placeholder="e.g., ACME2024"
+                          <label class="text-xs text-slate-400 block mb-1.5">Organization Code (if required)</label>
+                          <input id="login-org-code" type="text" placeholder="Enter code"
                             class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
                         </div>
             <div class="relative">
@@ -152,8 +152,8 @@
                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
             </div>
             <div>
-              <label class="text-xs text-slate-400 block mb-1.5">Organization Code</label>
-              <input id="reg-org-code" type="text" required placeholder="e.g., ACME2024"
+              <label class="text-xs text-slate-400 block mb-1.5" id="reg-org-code-label">Organization Code (if required)</label>
+              <input id="reg-org-code" type="text" placeholder="Enter code"
                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"/>
             </div>
             <div class="relative">
@@ -206,19 +206,7 @@
         <span id="user-department" class="text-xs px-2 py-0.5 rounded-full bg-green-700"></span>
         <span id="user-role-badge" class="text-xs px-2 py-0.5 rounded-full bg-blue-700"></span>
         <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition text-xs">Logout</button>
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width,initial-scale=1" />
-          <title>Redirecting…</title>
-          <meta http-equiv="refresh" content="0;url=/" />
-          <script>window.location.replace('/');</script>
-        </head>
-        <body>
-          Redirecting to the main app...
-        </body>
-      </html>
+      </div>
         .catch(() => alert('Could not send reset code'));
     });
 
@@ -348,6 +336,56 @@
       </form>
     </div>
   </div>
+
+  <script>
+    (function () {
+      function applyPortalAuthConfig(config) {
+        const requireLoginCode = Boolean(config?.org_code_required || config?.require_login_code);
+        const signupMode = config?.signup_mode || 'email';
+        const devHint = config?.dev_code_hint || null;
+
+        const loginOrgCode = document.getElementById('login-org-code');
+        if (loginOrgCode) {
+          loginOrgCode.required = requireLoginCode;
+          loginOrgCode.placeholder = requireLoginCode ? 'Enter code' : 'Optional';
+        }
+
+        const registerOrgCode = document.getElementById('reg-org-code');
+        if (registerOrgCode) {
+          registerOrgCode.required = signupMode === 'org_code';
+          registerOrgCode.placeholder = signupMode === 'org_code' ? 'Enter organization code' : '6-digit code from your email';
+        }
+
+        const regLabel = document.getElementById('reg-org-code-label');
+        if (regLabel) {
+          regLabel.textContent = signupMode === 'org_code' ? 'Organization Code' : 'Email verification code';
+        }
+
+        const hint = document.getElementById('auth-dev-hint');
+        if (hint) {
+          if (devHint && signupMode === 'org_code') {
+            hint.textContent = `Development mode: use code ${devHint}`;
+            hint.classList.remove('hidden');
+          } else {
+            hint.textContent = '';
+            hint.classList.add('hidden');
+          }
+        }
+      }
+
+      async function loadPortalAuthConfig() {
+        try {
+          const res = await fetch('/auth/config');
+          const data = await res.json();
+          applyPortalAuthConfig(data.data || data || {});
+        } catch (_) {
+          applyPortalAuthConfig({});
+        }
+      }
+
+      loadPortalAuthConfig();
+    })();
+  </script>
 
 </body>
 </html>

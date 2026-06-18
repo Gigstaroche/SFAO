@@ -13,6 +13,7 @@ import json
 import smtplib
 import os
 import random
+import uuid
 from email.message import EmailMessage
 
 from database import init_db, insert_feedback, get_all_feedback, get_summary, update_status, insert_user, get_user_by_email
@@ -43,6 +44,7 @@ from schemas import (
     FeedbackResponse, UserResponse, BuyerResponse, BuyerDepartmentResponse, SummaryResponse, APIResponse,
     SurveyTemplateCreate, SurveyTemplateUpdate, SurveyTemplateResponse,
     SurveyAssignmentCreate, SurveyAssignmentResponse, SurveyResponseCreate, SurveyResponseUpdate, SurveyResponseData,
+    PublicSurveyResponseCreate,
 )
 
 VALID_ROLES = {
@@ -830,6 +832,8 @@ def auth_config():
     """Expose non-sensitive auth mode metadata for frontend behavior."""
     signup_mode = get_signup_code_delivery_mode()
     dev_code = get_development_org_code()
+    expected_code = (os.getenv("SFAO_ORG_ACCESS_CODE", "") or "").strip()
+    login_code_required = bool(expected_code or dev_code or requires_login_code())
 
     return APIResponse(
         success=True,
@@ -837,6 +841,7 @@ def auth_config():
         data={
             "signup_mode": signup_mode,
             "require_login_code": requires_login_code(),
+            "org_code_required": login_code_required,
             "dev_code_hint": dev_code if signup_mode == "org_code" and dev_code else None,
         },
     )
@@ -1020,7 +1025,7 @@ def get_survey_templates(
 ):
     """Get all survey templates."""
     templates = db.query(SurveyTemplate).all()
-    return [SurveyTemplateResponse.from_orm(t) for t in templates]
+    return [SurveyTemplateResponse.model_validate(serialize_survey_template(t, db)) for t in templates]
 
 
 @app.post("/survey-templates", response_model=SurveyTemplateResponse)
@@ -1035,11 +1040,14 @@ def create_survey_template(
         description=payload.description,
         questions=payload.questions,
         created_by=current_user.id,
+        is_published=False,
+        share_mode="employee",
+        allow_anonymous=True,
     )
     db.add(template)
     db.commit()
     db.refresh(template)
-    return SurveyTemplateResponse.from_orm(template)
+    return SurveyTemplateResponse.model_validate(serialize_survey_template(template, db))
 
 
 @app.put("/survey-templates/{template_id}", response_model=SurveyTemplateResponse)
@@ -1062,10 +1070,21 @@ def update_survey_template(
         template.questions = payload.questions
     if payload.is_published is not None:
         template.is_published = payload.is_published
+    if payload.share_mode is not None:
+        template.share_mode = payload.share_mode
+    if payload.allow_anonymous is not None:
+        template.allow_anonymous = payload.allow_anonymous
+
+    if template.is_published and not template.share_token:
+        template.share_token = uuid.uuid4().hex
+    if template.is_published and not template.published_at:
+        template.published_at = datetime.utcnow()
+    if template.is_published and not template.share_mode:
+        template.share_mode = "public"
 
     db.commit()
     db.refresh(template)
-    return SurveyTemplateResponse.from_orm(template)
+    return SurveyTemplateResponse.model_validate(serialize_survey_template(template, db))
 
 
 @app.delete("/survey-templates/{template_id}", response_model=APIResponse)
@@ -1100,11 +1119,14 @@ def duplicate_survey_template(
         description=template.description,
         questions=template.questions,
         created_by=current_user.id,
+        is_published=False,
+        share_mode="employee",
+        allow_anonymous=True,
     )
     db.add(new_template)
     db.commit()
     db.refresh(new_template)
-    return SurveyTemplateResponse.from_orm(new_template)
+    return SurveyTemplateResponse.model_validate(serialize_survey_template(new_template, db))
 
 
 @app.post("/users/register", response_model=APIResponse)
@@ -1777,6 +1799,83 @@ def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "SFAO API"}
 
+
+def ensure_survey_share_state(survey: SurveyTemplate, db: Session) -> None:
+    """Ensure published surveys have share metadata and stable defaults."""
+    changed = False
+
+    if survey.is_published and not survey.share_token:
+        survey.share_token = uuid.uuid4().hex
+        changed = True
+
+    if survey.is_published and not survey.published_at:
+        survey.published_at = datetime.utcnow()
+        changed = True
+
+    desired_mode = "public" if survey.is_published else (survey.share_mode or "employee")
+    if survey.share_mode != desired_mode:
+        survey.share_mode = desired_mode
+        changed = True
+
+    if survey.allow_anonymous is None:
+        survey.allow_anonymous = True
+        changed = True
+
+    if changed:
+        db.add(survey)
+        db.commit()
+        db.refresh(survey)
+
+
+def survey_public_link(token: Optional[str]) -> Optional[str]:
+    if not token:
+        return None
+    return f"/portal/survey.html?share={token}"
+
+
+def serialize_survey_template(survey: SurveyTemplate, db: Optional[Session] = None) -> Dict[str, object]:
+    if db is not None:
+        ensure_survey_share_state(survey, db)
+    return {
+        "id": survey.id,
+        "name": survey.name,
+        "description": survey.description,
+        "questions": survey.questions,
+        "created_by": survey.created_by,
+        "is_published": bool(survey.is_published),
+        "share_token": survey.share_token,
+        "share_mode": survey.share_mode,
+        "allow_anonymous": bool(survey.allow_anonymous),
+        "published_at": survey.published_at.isoformat() if survey.published_at else None,
+        "public_link": survey_public_link(survey.share_token),
+        "created_at": survey.created_at.isoformat() if survey.created_at else None,
+        "updated_at": survey.updated_at.isoformat() if survey.updated_at else None,
+    }
+
+
+def serialize_employee_survey_item(
+    survey: SurveyTemplate,
+    *,
+    assignment: Optional[SurveyAssignment] = None,
+    responded: bool = False,
+) -> Dict[str, object]:
+    return {
+        "assignment_id": assignment.id if assignment else None,
+        "survey_id": survey.id,
+        "survey_name": survey.name,
+        "survey_description": survey.description,
+        "questions": survey.questions,
+        "due_date": assignment.due_date.isoformat() if assignment and assignment.due_date else None,
+        "assigned_at": assignment.assigned_at.isoformat() if assignment else (survey.published_at.isoformat() if survey.published_at else None),
+        "status": assignment.assignment_status if assignment else "published",
+        "already_responded": responded,
+        "source": "assignment" if assignment else "published",
+        "is_published": bool(survey.is_published),
+        "allow_anonymous": bool(survey.allow_anonymous),
+        "public_link": survey_public_link(survey.share_token),
+        "share_token": survey.share_token,
+    }
+
 # ============================================================================
 # SURVEY MANAGEMENT ENDPOINTS (Admin Creation, Assignment, Response Tracking)
 # ============================================================================
@@ -1818,15 +1917,7 @@ def list_surveys(
         query = query.filter(SurveyTemplate.is_published == is_published)
     surveys = query.order_by(SurveyTemplate.created_at.desc()).all()
     data = [
-        {
-            "id": s.id,
-            "name": s.name,
-            "description": s.description,
-            "is_published": bool(s.is_published),
-            "created_by": s.created_by,
-            "created_at": s.created_at.isoformat(),
-            "updated_at": s.updated_at.isoformat(),
-        }
+        serialize_survey_template(s, db)
         for s in surveys
     ]
     return APIResponse(success=True, message="Surveys retrieved", data=data)
@@ -1843,16 +1934,7 @@ def get_survey(
     if not survey:
         raise HTTPException(status_code=404, detail="Survey not found")
     
-    data = {
-        "id": survey.id,
-        "name": survey.name,
-        "description": survey.description,
-        "questions": survey.questions,
-        "is_published": bool(survey.is_published),
-        "created_by": survey.created_by,
-        "created_at": survey.created_at.isoformat(),
-        "updated_at": survey.updated_at.isoformat(),
-    }
+    data = serialize_survey_template(survey, db)
     return APIResponse(success=True, message="Survey retrieved", data=data)
 
 
@@ -1876,11 +1958,17 @@ def update_survey_template(
         survey.questions = payload.questions
     if payload.is_published is not None:
         survey.is_published = payload.is_published
+    if survey.is_published and not survey.share_token:
+        survey.share_token = uuid.uuid4().hex
+    if survey.is_published and not survey.published_at:
+        survey.published_at = datetime.utcnow()
+    if survey.is_published and not survey.share_mode:
+        survey.share_mode = "public"
     
     db.commit()
     db.refresh(survey)
     record_audit_event(db, actor, "survey.update", "survey_template", str(survey.id), {"name": survey.name})
-    return APIResponse(success=True, message="Survey template updated", data={"id": survey.id})
+    return APIResponse(success=True, message="Survey template updated", data=serialize_survey_template(survey, db))
 
 
 @app.post("/surveys/{survey_id}/assign", response_model=APIResponse)
@@ -1915,6 +2003,44 @@ def assign_survey(
     )
 
 
+@app.get("/surveys/available", response_model=APIResponse)
+def get_available_surveys(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("employee")),
+):
+    """Get surveys assigned to the user plus any published surveys."""
+    assignments = db.query(SurveyAssignment).filter(
+        (SurveyAssignment.assigned_to_user_id == actor.id) |
+        (SurveyAssignment.assigned_to_department_id == actor.department_id) |
+        (SurveyAssignment.assigned_to_organization_id == actor.organization_id)
+    ).all()
+
+    assigned_survey_ids: Set[int] = set()
+    data = []
+    for assignment in assignments:
+        survey = db.query(SurveyTemplate).filter(SurveyTemplate.id == assignment.survey_template_id).first()
+        if not survey:
+            continue
+        assigned_survey_ids.add(survey.id)
+        response = db.query(SurveyResponse).filter(
+            (SurveyResponse.survey_assignment_id == assignment.id) |
+            (SurveyResponse.respondent_user_id == actor.id)
+        ).first()
+        data.append(serialize_employee_survey_item(survey, assignment=assignment, responded=response is not None))
+
+    published_surveys = db.query(SurveyTemplate).filter(SurveyTemplate.is_published == True).order_by(SurveyTemplate.created_at.desc()).all()  # noqa: E712
+    for survey in published_surveys:
+        if survey.id in assigned_survey_ids:
+            continue
+        response = db.query(SurveyResponse).filter(
+            SurveyResponse.survey_template_id == survey.id,
+            SurveyResponse.respondent_user_id == actor.id,
+        ).first()
+        data.append(serialize_employee_survey_item(survey, assignment=None, responded=response is not None))
+
+    return APIResponse(success=True, message="Available surveys retrieved", data=data)
+
+
 @app.get("/surveys/assigned", response_model=APIResponse)
 def get_assigned_surveys(
     db: Session = Depends(get_db),
@@ -1931,24 +2057,13 @@ def get_assigned_surveys(
     for assignment in assignments:
         survey = db.query(SurveyTemplate).filter(SurveyTemplate.id == assignment.survey_template_id).first()
         if survey:
-            # Check if user already responded
             response = db.query(SurveyResponse).filter(
                 (SurveyResponse.survey_assignment_id == assignment.id) |
                 (SurveyResponse.respondent_user_id == actor.id)
             ).first()
-            
-            data.append({
-                "assignment_id": assignment.id,
-                "survey_id": survey.id,
-                "survey_name": survey.name,
-                "survey_description": survey.description,
-                "questions": survey.questions,
-                "due_date": assignment.due_date.isoformat() if assignment.due_date else None,
-                "assigned_at": assignment.assigned_at.isoformat(),
-                "status": assignment.assignment_status,
-                "already_responded": response is not None,
-            })
-    
+
+            data.append(serialize_employee_survey_item(survey, assignment=assignment, responded=response is not None))
+
     return APIResponse(success=True, message="Assigned surveys retrieved", data=data)
 
 
@@ -1964,13 +2079,15 @@ def submit_survey_response(
     if not survey:
         raise HTTPException(status_code=404, detail="Survey not found")
     
-    # Check if assignment exists
     assignment = db.query(SurveyAssignment).filter(
         (SurveyAssignment.survey_template_id == survey_id) &
         ((SurveyAssignment.assigned_to_user_id == actor.id) |
          (SurveyAssignment.assigned_to_department_id == actor.department_id) |
          (SurveyAssignment.assigned_to_organization_id == actor.organization_id))
     ).first()
+
+    if not assignment and not survey.is_published:
+        raise HTTPException(status_code=403, detail="Survey is not available to this user")
     
     response = SurveyResponse(
         survey_template_id=survey_id,
@@ -1979,6 +2096,10 @@ def submit_survey_response(
         responses=payload.responses,
         status="submitted",
         submitted_at=datetime.utcnow(),
+        respondent_name=payload.respondent_name or actor.name,
+        respondent_email=payload.respondent_email or actor.email,
+        response_source="employee",
+        is_anonymous=bool(payload.is_anonymous),
     )
     db.add(response)
     
@@ -1994,6 +2115,57 @@ def submit_survey_response(
         success=True,
         message="Survey response submitted",
         data={"response_id": response.id, "survey_id": survey_id},
+    )
+
+
+@app.get("/public/surveys/{share_token}", response_model=APIResponse)
+def get_public_survey(
+    share_token: str,
+    db: Session = Depends(get_db),
+):
+    """Get a published survey for public sharing."""
+    survey = db.query(SurveyTemplate).filter(SurveyTemplate.share_token == share_token).first()
+    if not survey or not survey.is_published:
+        raise HTTPException(status_code=404, detail="Public survey not found")
+
+    return APIResponse(success=True, message="Public survey retrieved", data=serialize_survey_template(survey, db))
+
+
+@app.post("/public/surveys/{share_token}/respond", response_model=APIResponse)
+def submit_public_survey_response(
+    share_token: str,
+    payload: PublicSurveyResponseCreate,
+    db: Session = Depends(get_db),
+):
+    """Submit a public survey response using a shared link."""
+    survey = db.query(SurveyTemplate).filter(SurveyTemplate.share_token == share_token).first()
+    if not survey or not survey.is_published:
+        raise HTTPException(status_code=404, detail="Public survey not found")
+
+    if not payload.is_anonymous:
+        if not (payload.respondent_name or payload.respondent_email):
+            raise HTTPException(status_code=400, detail="Provide a name or email when submitting identified responses")
+
+    response = SurveyResponse(
+        survey_template_id=survey.id,
+        respondent_user_id=None,
+        survey_assignment_id=None,
+        responses=payload.responses,
+        status="submitted",
+        submitted_at=datetime.utcnow(),
+        respondent_name=payload.respondent_name,
+        respondent_email=payload.respondent_email,
+        response_source="public",
+        is_anonymous=bool(payload.is_anonymous),
+    )
+    db.add(response)
+    db.commit()
+    db.refresh(response)
+
+    return APIResponse(
+        success=True,
+        message="Public survey response submitted",
+        data={"response_id": response.id, "survey_id": survey.id},
     )
 
 

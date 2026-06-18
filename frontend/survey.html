@@ -95,51 +95,74 @@
       </div>
 
       <form id="survey-form" class="space-y-5">
-
-        <!-- Name -->
-        <div>
-          <label class="block text-sm text-gray-300 mb-1">Your Name (optional)</label>
-          <input id="name" type="text" placeholder="e.g. Jane Smith"
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
-        </div>
-
-        <!-- Department -->
-        <div>
-          <label class="block text-sm text-gray-300 mb-1">Department <span class="text-red-400">*</span></label>
-          <select id="department" required
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
-            <option value="">Select department...</option>
-            <option>Engineering</option>
-            <option>Sales</option>
-            <option>Marketing</option>
-            <option>HR</option>
-            <option>Finance</option>
-            <option>Operations</option>
-            <option>Customer Support</option>
-          </select>
-        </div>
-
-        <!-- Star Rating -->
-        <div>
-          <label class="block text-sm text-gray-300 mb-2">Overall Rating <span class="text-red-400">*</span></label>
-          <div class="flex gap-2" id="stars">
-            <button type="button" data-val="1" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
-            <button type="button" data-val="2" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
-            <button type="button" data-val="3" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
-            <button type="button" data-val="4" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
-            <button type="button" data-val="5" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+        <div id="public-survey-shell" class="hidden space-y-5">
+          <div>
+            <label class="block text-sm text-gray-300 mb-1">Your Name (optional)</label>
+            <input id="public-name" type="text" placeholder="e.g. Jane Smith"
+              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
           </div>
-          <input type="hidden" id="rating" value="0"/>
+
+          <div>
+            <label class="block text-sm text-gray-300 mb-1">Email (optional)</label>
+            <input id="public-email" type="email" placeholder="e.g. jane@example.com"
+              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label id="public-questions-label" class="block text-sm text-gray-300">Survey Questions</label>
+              <span id="public-anonymous-badge" class="hidden text-xs px-2 py-1 rounded-full bg-gray-700 text-gray-200">Anonymous allowed</span>
+            </div>
+            <div id="public-questions" class="space-y-4"></div>
+          </div>
         </div>
 
-        <!-- Feedback Text -->
-        <div>
-          <label class="block text-sm text-gray-300 mb-1">Your Feedback <span class="text-red-400">*</span></label>
-          <textarea id="feedback-text" rows="4" required placeholder="Share your thoughts, issues, or suggestions..."
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none"></textarea>
-          <div class="flex items-center justify-between text-xs mt-2">
-            <span id="draft-state" class="text-muted">Draft not saved yet</span>
-            <span id="feedback-count" class="text-muted">0/2000</span>
+        <div id="employee-survey-shell" class="space-y-5">
+          <!-- Name -->
+          <div>
+            <label class="block text-sm text-gray-300 mb-1">Your Name (optional)</label>
+            <input id="name" type="text" placeholder="e.g. Jane Smith"
+              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"/>
+          </div>
+
+          <!-- Department -->
+          <div>
+            <label class="block text-sm text-gray-300 mb-1">Department <span class="text-red-400">*</span></label>
+            <select id="department" required
+              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+              <option value="">Select department...</option>
+              <option>Engineering</option>
+              <option>Sales</option>
+              <option>Marketing</option>
+              <option>HR</option>
+              <option>Finance</option>
+              <option>Operations</option>
+              <option>Customer Support</option>
+            </select>
+          </div>
+
+          <!-- Star Rating -->
+          <div>
+            <label class="block text-sm text-gray-300 mb-2">Overall Rating <span class="text-red-400">*</span></label>
+            <div class="flex gap-2" id="stars">
+              <button type="button" data-val="1" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+              <button type="button" data-val="2" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+              <button type="button" data-val="3" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+              <button type="button" data-val="4" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+              <button type="button" data-val="5" class="star text-3xl text-gray-600 hover:text-yellow-400 transition">★</button>
+            </div>
+            <input type="hidden" id="rating" value="0"/>
+          </div>
+
+          <!-- Feedback Text -->
+          <div>
+            <label class="block text-sm text-gray-300 mb-1">Your Feedback <span class="text-red-400">*</span></label>
+            <textarea id="feedback-text" rows="4" required placeholder="Share your thoughts, issues, or suggestions..."
+              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none"></textarea>
+            <div class="flex items-center justify-between text-xs mt-2">
+              <span id="draft-state" class="text-muted">Draft not saved yet</span>
+              <span id="feedback-count" class="text-muted">0/2000</span>
+            </div>
           </div>
         </div>
 

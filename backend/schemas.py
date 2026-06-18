@@ -68,6 +68,8 @@ class SurveyTemplateUpdate(BaseModel):
     description: Optional[str] = Field(None, description="Template description")
     questions: Optional[str] = Field(None, description="JSON string of questions")
     is_published: Optional[bool] = Field(None, description="Publish status")
+    share_mode: Optional[str] = Field(None, description="employee, invite, or public")
+    allow_anonymous: Optional[bool] = Field(None, description="Allow anonymous public responses")
 
 
 class SurveyTemplateResponse(BaseModel):
@@ -77,6 +79,10 @@ class SurveyTemplateResponse(BaseModel):
     questions: str
     created_by: Optional[int]
     is_published: bool
+    share_token: Optional[str]
+    share_mode: Optional[str]
+    allow_anonymous: bool
+    published_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
 
@@ -136,6 +142,16 @@ class SurveyAssignmentResponse(BaseModel):
 class SurveyResponseCreate(BaseModel):
     survey_template_id: int = Field(..., ge=1, description="Survey template ID")
     responses: str = Field(..., description="JSON string of {question_id: answer}")
+    respondent_name: Optional[str] = Field(None, description="Respondent name for public surveys")
+    respondent_email: Optional[str] = Field(None, description="Respondent email for public surveys")
+    is_anonymous: bool = Field(False, description="Anonymous public submission")
+
+
+class PublicSurveyResponseCreate(BaseModel):
+    responses: str = Field(..., description="JSON string of {question_id: answer}")
+    respondent_name: Optional[str] = Field(None, description="Respondent name for public surveys")
+    respondent_email: Optional[str] = Field(None, description="Respondent email for public surveys")
+    is_anonymous: bool = Field(True, description="Anonymous public submission")
 
 
 class SurveyResponseUpdate(BaseModel):
@@ -146,8 +162,12 @@ class SurveyResponseUpdate(BaseModel):
 class SurveyResponseData(BaseModel):
     id: int
     survey_template_id: int
-    respondent_user_id: int
+    respondent_user_id: Optional[int]
     survey_assignment_id: Optional[int]
+    respondent_name: Optional[str]
+    respondent_email: Optional[str]
+    response_source: Optional[str]
+    is_anonymous: bool
     responses: str
     start_time: datetime
     submitted_at: Optional[datetime]
